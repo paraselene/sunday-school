@@ -13,6 +13,8 @@ class Classroom(models.Model):
 
 class Student(models.Model):
     name = models.CharField(max_length=100)
+    emergency_contact = models.CharField(max_length=100, blank=True, default="")
+    phone = models.CharField(max_length=30, blank=True, default="")
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, related_name="students")
     active = models.BooleanField(default=True)
 

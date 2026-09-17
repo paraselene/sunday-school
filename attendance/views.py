@@ -111,14 +111,31 @@ def students(request):
             student.save(update_fields=["active"])
             messages.success(request, f"已{'封存' if action == 'archive' else '取消封存'} {student.name}。")
         else:
-            name = request.POST.get("name", "").strip()
-            if not name:
+            data = {
+                "name": request.POST.get("name", "").strip(),
+                "emergency_contact": request.POST.get("emergency_contact", "").strip(),
+                "phone": request.POST.get("phone", "").strip(),
+            }
+            student = get_object_or_404(Student, pk=request.POST.get("student"), classroom=classroom) if action == "edit" else None
+            if not data["name"]:
                 messages.error(request, "請輸入學生姓名。")
-            elif Student.objects.filter(classroom=classroom, name__iexact=name).exists():
-                messages.error(request, "這個班級已有同名學生。")
+            elif len(data["name"]) > 100 or len(data["emergency_contact"]) > 100 or len(data["phone"]) > 30:
+                messages.error(request, "學生資料太長。")
             else:
-                Student.objects.create(name=name, classroom=classroom)
-                messages.success(request, "學生已新增。")
+                duplicates = Student.objects.filter(classroom=classroom, name__iexact=data["name"])
+                if student:
+                    duplicates = duplicates.exclude(pk=student.pk)
+                if duplicates.exists():
+                    messages.error(request, "這個班級已有同名學生。")
+                elif student:
+                    student.name = data["name"]
+                    student.emergency_contact = data["emergency_contact"]
+                    student.phone = data["phone"]
+                    student.save(update_fields=["name", "emergency_contact", "phone"])
+                    messages.success(request, f"已更新 {student.name}。")
+                else:
+                    Student.objects.create(classroom=classroom, **data)
+                    messages.success(request, "學生已新增。")
         return redirect(f"/students/?classroom={classroom.pk}")
     return render(request, "attendance/students.html", {
         "classrooms": Classroom.objects.all(),

@@ -58,6 +58,20 @@ class AttendanceTests(TestCase):
         self.assertContains(self.client.post(reverse("login"), {"password": "錯誤"}), "密碼不正確")
         self.assertRedirects(self.client.post(reverse("login"), {"password": "共同密碼"}), reverse("home"))
 
+    def test_add_and_edit_student_contact_details(self):
+        self.login()
+        self.client.post(reverse("students"), {"classroom": self.classroom.pk, "name": "Cara", "emergency_contact": "Cara 的母親", "phone": "0212345678"})
+        cara = Student.objects.get(name="Cara")
+        self.assertEqual((cara.emergency_contact, cara.phone), ("Cara 的母親", "0212345678"))
+        page = self.client.get(reverse("students"), {"classroom": self.classroom.pk})
+        self.assertContains(page, "緊急聯繫人")
+        self.assertContains(page, "Cara 的母親")
+        self.assertContains(page, f'aria-controls="edit-{cara.pk}"')
+        self.assertContains(page, f'<dialog id="edit-{cara.pk}"', html=False)
+        self.client.post(reverse("students"), {"classroom": self.classroom.pk, "student": cara.pk, "action": "edit", "name": "Carol", "emergency_contact": "Carol 的父親", "phone": "+64 21 234 5678"})
+        cara.refresh_from_db()
+        self.assertEqual((cara.name, cara.emergency_contact, cara.phone), ("Carol", "Carol 的父親", "+64 21 234 5678"))
+
     def test_add_archive_unarchive_and_keep_history(self):
         self.login()
         self.client.post(reverse("students"), {"classroom": self.classroom.pk, "name": "Cara"})
