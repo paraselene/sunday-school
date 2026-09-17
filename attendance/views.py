@@ -104,11 +104,12 @@ def students(request):
         messages.error(request, "請先選擇班級。")
         return redirect("students")
     if request.method == "POST":
-        if request.POST.get("action") == "archive":
-            student = get_object_or_404(Student, pk=request.POST.get("student"), classroom=classroom, active=True)
-            student.active = False
+        action = request.POST.get("action")
+        if action in {"archive", "unarchive"}:
+            student = get_object_or_404(Student, pk=request.POST.get("student"), classroom=classroom, active=action == "archive")
+            student.active = action == "unarchive"
             student.save(update_fields=["active"])
-            messages.success(request, f"已封存 {student.name}。")
+            messages.success(request, f"已{'封存' if action == 'archive' else '取消封存'} {student.name}。")
         else:
             name = request.POST.get("name", "").strip()
             if not name:
@@ -123,6 +124,7 @@ def students(request):
         "classrooms": Classroom.objects.all(),
         "classroom": classroom,
         "students": classroom.students.filter(active=True) if classroom else [],
+        "archived_students": classroom.students.filter(active=False) if classroom else [],
     })
 
 

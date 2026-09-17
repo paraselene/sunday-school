@@ -58,7 +58,7 @@ class AttendanceTests(TestCase):
         self.assertContains(self.client.post(reverse("login"), {"password": "錯誤"}), "密碼不正確")
         self.assertRedirects(self.client.post(reverse("login"), {"password": "共同密碼"}), reverse("home"))
 
-    def test_add_archive_and_keep_history(self):
+    def test_add_archive_unarchive_and_keep_history(self):
         self.login()
         self.client.post(reverse("students"), {"classroom": self.classroom.pk, "name": "Cara"})
         cara = Student.objects.get(name="Cara")
@@ -70,6 +70,13 @@ class AttendanceTests(TestCase):
         self.assertNotContains(future, "<legend>Cara", html=False)
         self.assertContains(history, "Cara")
         self.assertContains(history, f'value="{cara.pk}" selected')
+        archived = self.client.get(reverse("students"), {"classroom": self.classroom.pk})
+        self.assertContains(archived, "Cara")
+        self.assertContains(archived, "取消封存")
+        self.client.post(reverse("students"), {"classroom": self.classroom.pk, "student": cara.pk, "action": "unarchive"})
+        cara.refresh_from_db()
+        self.assertTrue(cara.active)
+        self.assertContains(self.client.get(reverse("attendance"), {"classroom": self.classroom.pk, "date": "2026-09-20"}), "<legend>Cara", html=False)
 
     def test_save_requires_complete_roster_and_reopens_for_correction(self):
         self.login()

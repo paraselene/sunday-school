@@ -11,5 +11,9 @@
   <h2>現有學生</h2>
   <ul class="item-list">{% for student in students %}<li><strong>{{ student.name }}</strong><form method="post">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="archive"><button class="secondary" type="submit">封存</button></form></li>{% empty %}<li>沒有現有學生。</li>{% endfor %}</ul>
 </section>
+<section class="panel">
+  <h2>已封存學生</h2>
+  <ul class="item-list">{% for student in archived_students %}<li><strong>{{ student.name }}</strong><form method="post">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="unarchive"><button type="submit">取消封存</button></form></li>{% empty %}<li>沒有已封存學生。</li>{% endfor %}</ul>
+</section>
 {% endif %}
 {% endblock %}
