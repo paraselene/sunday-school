@@ -8,8 +8,5 @@ services:
       DATABASE_PATH: /data/db.sqlite3
       DEBUG: "0"
     volumes:
-      - sunday_school_data:/data
+      - ./data:/data
     restart: unless-stopped
-
-volumes:
-  sunday_school_data:
