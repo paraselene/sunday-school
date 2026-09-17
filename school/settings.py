@@ -6,6 +6,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe-development-key")
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
+# Trust HTTPS requests for the same hosts (needed behind a reverse proxy like Nginx Proxy Manager,
+# whose forwarded requests otherwise fail Django's CSRF origin check).
+CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS if host not in ("localhost", "127.0.0.1")]
+# Nginx Proxy Manager terminates TLS and forwards plain HTTP; trust its X-Forwarded-Proto header
+# so Django knows the original request was HTTPS (secure cookies, CSRF, request.is_secure()).
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 LOGIN_PASSWORD = os.environ.get("LOGIN_PASSWORD", "")
 PDF_FONT_PATH = os.environ.get("PDF_FONT_PATH", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc")
 
