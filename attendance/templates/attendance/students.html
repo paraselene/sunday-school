@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>學生</h1>
+<form method="get" class="panel filters"><div><label for="classroom">班級</label><select id="classroom" name="classroom" required><option value="">選擇班級</option>{% for class in classrooms %}<option value="{{ class.pk }}"{% if class == classroom %} selected{% endif %}>{{ class.name }}</option>{% endfor %}</select></div><button type="submit">查看</button></form>
+{% if classroom %}
+<section class="panel">
+  <h2>新增至 {{ classroom.name }}</h2>
+  <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><div><label for="name">學生姓名</label><input id="name" name="name" maxlength="100" required></div><button type="submit">新增學生</button></form>
+</section>
+<section class="panel">
+  <h2>現有學生</h2>
+  <ul class="item-list">{% for student in students %}<li><strong>{{ student.name }}</strong><form method="post">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="archive"><button class="secondary" type="submit">封存</button></form></li>{% empty %}<li>沒有現有學生。</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

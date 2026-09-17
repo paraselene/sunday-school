@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>點名</h1>
+<form method="get" class="panel filters">
+  <div><label for="classroom">班級</label><select id="classroom" name="classroom" required><option value="">選擇班級</option>{% for class in classrooms %}<option value="{{ class.pk }}"{% if class == classroom %} selected{% endif %}>{{ class.name }}</option>{% endfor %}</select></div>
+  <div><label for="date">日期</label><input id="date" name="date" type="date" value="{{ date|date:'Y-m-d' }}" required></div>
+  <button type="submit">載入名單</button>
+</form>
+{% if classroom %}
+<form method="post" class="panel attendance-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+  <h2>{{ classroom.name }} · {{ date|date:"Y年n月j日" }}</h2>
+  {% for row in rows %}<fieldset><legend>{{ row.student.name }}{% if not row.student.active %} <small>（已封存）</small>{% endif %}</legend><div class="status-options"><label class="present"><input type="radio" name="status_{{ row.student.pk }}" value="present"{% if row.status == 'present' %} checked{% endif %} required> 出席</label><label class="absent"><input type="radio" name="status_{{ row.student.pk }}" value="absent"{% if row.status == 'absent' %} checked{% endif %}> 缺席</label></div></fieldset>{% empty %}<p>沒有現有學生，請先新增學生再進行點名。</p>{% endfor %}
+  {% if rows %}<button type="submit">儲存點名紀錄</button>{% endif %}
+</form>
+{% endif %}
+{% endblock %}

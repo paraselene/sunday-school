@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>班級</h1>
+<section class="panel">
+  <h2>新增班級</h2>
+  <form method="post" class="inline-form">{% csrf_token %}<div><label for="name">班級名稱</label><input id="name" name="name" maxlength="100" required></div><button type="submit">新增班級</button></form>
+</section>
+<section class="panel">
+  <h2>所有班級</h2>
+  <ul class="item-list">{% for class in classrooms %}<li><span><strong>{{ class.name }}</strong><small>{{ class.student_count }} 名現有學生</small></span><a href="{% url 'students' %}?classroom={{ class.pk }}">管理</a></li>{% empty %}<li>尚未建立班級。</li>{% endfor %}</ul>
+</section>
+{% endblock %}

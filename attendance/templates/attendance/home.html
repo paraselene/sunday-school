@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>選擇班級</h1>
+<div class="cards">
+  {% for class in classrooms %}
+    <article class="panel"><h2>{{ class.name }}</h2><div class="actions"><a class="button" href="{% url 'attendance' %}?classroom={{ class.pk }}">開始點名</a><a href="{% url 'students' %}?classroom={{ class.pk }}">學生</a></div></article>
+  {% empty %}<div class="panel"><p>尚未建立班級。</p><a class="button" href="{% url 'classes' %}">建立第一個班級</a></div>{% endfor %}
+</div>
+{% endblock %}
