@@ -28,4 +28,11 @@ python manage.py runserver
 
 HTTPS 終止、網域／DNS 設定、定期 volume 備份及多執行個體部署屬於本應用程式以外的基礎設施工作。
 
-Docker 映像已包含 PDF 所需的中文字型。本機直接執行時，如系統沒有預設字型路徑，請在 `.env` 設定 `PDF_FONT_PATH` 為支援繁體中文的 TTF 或 TTC 字型。
+PDF 使用本機 `fonts/NotoSansTC[wght].ttf` 的 Noto Sans TC（思源黑體繁中）。字型不會提交至 Git，也不會放進映像；Docker Compose 會將 `./fonts` 唯讀掛載到容器的 `/app/fonts`。
+
+首次使用前下載字型：
+
+```sh
+mkdir -p fonts
+curl -fL -o 'fonts/NotoSansTC[wght].ttf' 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf'
+```

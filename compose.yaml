@@ -7,6 +7,7 @@ services:
       DEBUG: "0"
     volumes:
       - ./data:/data
+      - ./fonts:/app/fonts:ro
     restart: unless-stopped
     networks:
       - default

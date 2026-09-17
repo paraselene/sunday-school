@@ -13,7 +13,7 @@ CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS if host not 
 # so Django knows the original request was HTTPS (secure cookies, CSRF, request.is_secure()).
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 LOGIN_PASSWORD = os.environ.get("LOGIN_PASSWORD", "")
-PDF_FONT_PATH = os.environ.get("PDF_FONT_PATH", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc")
+PDF_FONT_PATH = str(BASE_DIR / "fonts" / "NotoSansTC[wght].ttf")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
