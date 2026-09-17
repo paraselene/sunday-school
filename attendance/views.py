@@ -136,12 +136,17 @@ def attendance_roster(classroom, session):
 @login_required
 def attendance(request):
     classroom = selected_classroom(request)
-    date = parse_date(request.GET.get("date", "") or request.POST.get("date", "")) or next_sunday()
+    requested_date = parse_date(request.GET.get("date", "") or request.POST.get("date", ""))
+    invalid_date = requested_date and requested_date.weekday() != 6
+    if invalid_date:
+        messages.error(request, "請選擇星期日。")
+    date = requested_date if not invalid_date else next_sunday()
+    date = date or next_sunday()
     session = AttendanceSession.objects.filter(classroom=classroom, date=date).first() if classroom else None
     roster = attendance_roster(classroom, session) if classroom else []
     saved = {record.student_id: record.status for record in session.records.all()} if session else {}
 
-    if request.method == "POST" and classroom:
+    if request.method == "POST" and classroom and not invalid_date:
         statuses = {student.id: request.POST.get(f"status_{student.id}") for student in roster}
         if not roster:
             messages.error(request, "請先新增至少一名現有學生。")

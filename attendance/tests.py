@@ -86,6 +86,12 @@ class AttendanceTests(TestCase):
         self.assertEqual(AttendanceSession.objects.count(), 1)
         self.assertEqual(session.records.get(student=self.ben).status, "present")
 
+    def test_attendance_rejects_non_sunday(self):
+        self.login()
+        response = self.client.post(reverse("attendance"), {"classroom": self.classroom.pk, "date": "2026-09-21"})
+        self.assertContains(response, "請選擇星期日。")
+        self.assertFalse(AttendanceSession.objects.exists())
+
     def test_reports_totals_filters_empty_and_pdf(self):
         self.login()
         session = AttendanceSession.objects.create(classroom=self.classroom, date="2026-09-13")

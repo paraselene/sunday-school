@@ -3,7 +3,7 @@
 <h1>點名</h1>
 <form method="get" class="panel filters">
   <div><label for="classroom">班級</label><select id="classroom" name="classroom" required><option value="">選擇班級</option>{% for class in classrooms %}<option value="{{ class.pk }}"{% if class == classroom %} selected{% endif %}>{{ class.name }}</option>{% endfor %}</select></div>
-  <div><label for="date">日期</label><input id="date" name="date" type="date" value="{{ date|date:'Y-m-d' }}" required></div>
+  <div><label for="date">日期（星期日）</label><input id="date" name="date" type="date" value="{{ date|date:'Y-m-d' }}" oninput="this.setCustomValidity(this.value && new Date(this.value + 'T00:00:00').getDay() ? '請選擇星期日。' : '')" required></div>
   <button type="submit">載入名單</button>
 </form>
 {% if classroom %}
