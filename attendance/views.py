@@ -12,9 +12,11 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.formats import date_format
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
@@ -53,15 +55,15 @@ def login_view(request):
             try:
                 weekly_database_backup()
             except (OSError, sqlite3.Error):
-                messages.warning(request, "資料庫備份失敗，請聯絡管理員。")
-            user, _ = get_user_model().objects.get_or_create(username="shared")
+                messages.warning(request, _("資料庫備份失敗，請聯絡管理員。"))
+            user, _created = get_user_model().objects.get_or_create(username="shared")
             if user.has_usable_password():
                 user.set_unusable_password()
                 user.save(update_fields=["password"])
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             next_url = request.POST.get("next", "")
             return redirect(next_url if url_has_allowed_host_and_scheme(next_url, {request.get_host()}, require_https=request.is_secure()) else "home")
-        messages.error(request, "密碼不正確。" if settings.LOGIN_PASSWORD else "登入密碼尚未設定。")
+        messages.error(request, _("密碼不正確。") if settings.LOGIN_PASSWORD else _("登入密碼尚未設定。"))
     return render(request, "registration/login.html", {"next": request.GET.get("next", "")})
 
 
@@ -87,12 +89,12 @@ def classes(request):
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
         if not name:
-            messages.error(request, "請輸入班級名稱。")
+            messages.error(request, _("請輸入班級名稱。"))
         elif Classroom.objects.filter(name__iexact=name).exists():
-            messages.error(request, "這個班級已經存在。")
+            messages.error(request, _("這個班級已經存在。"))
         else:
             Classroom.objects.create(name=name)
-            messages.success(request, "班級已建立。")
+            messages.success(request, _("班級已建立。"))
             return redirect("classes")
     return render(request, "attendance/classes.html", {"classrooms": Classroom.objects.annotate(student_count=Count("students", filter=Q(students__active=True)))})
 
@@ -101,7 +103,7 @@ def classes(request):
 def students(request):
     classroom = selected_classroom(request)
     if request.method == "POST" and not classroom:
-        messages.error(request, "請先選擇班級。")
+        messages.error(request, _("請先選擇班級。"))
         return redirect("students")
     if request.method == "POST":
         action = request.POST.get("action")
@@ -109,7 +111,7 @@ def students(request):
             student = get_object_or_404(Student, pk=request.POST.get("student"), classroom=classroom, active=action == "archive")
             student.active = action == "unarchive"
             student.save(update_fields=["active"])
-            messages.success(request, f"已{'封存' if action == 'archive' else '取消封存'} {student.name}。")
+            messages.success(request, (_("已封存 %(student)s。") if action == "archive" else _("已取消封存 %(student)s。")) % {"student": student.name})
         else:
             data = {
                 "name": request.POST.get("name", "").strip(),
@@ -118,24 +120,24 @@ def students(request):
             }
             student = get_object_or_404(Student, pk=request.POST.get("student"), classroom=classroom) if action == "edit" else None
             if not data["name"]:
-                messages.error(request, "請輸入學生姓名。")
+                messages.error(request, _("請輸入學生姓名。"))
             elif len(data["name"]) > 100 or len(data["emergency_contact"]) > 100 or len(data["phone"]) > 30:
-                messages.error(request, "學生資料太長。")
+                messages.error(request, _("學生資料太長。"))
             else:
                 duplicates = Student.objects.filter(classroom=classroom, name__iexact=data["name"])
                 if student:
                     duplicates = duplicates.exclude(pk=student.pk)
                 if duplicates.exists():
-                    messages.error(request, "這個班級已有同名學生。")
+                    messages.error(request, _("這個班級已有同名學生。"))
                 elif student:
                     student.name = data["name"]
                     student.emergency_contact = data["emergency_contact"]
                     student.phone = data["phone"]
                     student.save(update_fields=["name", "emergency_contact", "phone"])
-                    messages.success(request, f"已更新 {student.name}。")
+                    messages.success(request, _("已更新 %(student)s。") % {"student": student.name})
                 else:
                     Student.objects.create(classroom=classroom, **data)
-                    messages.success(request, "學生已新增。")
+                    messages.success(request, _("學生已新增。"))
         return redirect(f"/students/?classroom={classroom.pk}")
     return render(request, "attendance/students.html", {
         "classrooms": Classroom.objects.all(),
@@ -158,7 +160,7 @@ def attendance(request):
     requested_date = parse_date(request.GET.get("date", "") or request.POST.get("date", ""))
     invalid_date = requested_date and requested_date.weekday() != 6
     if invalid_date:
-        messages.error(request, "請選擇星期日。")
+        messages.error(request, _("請選擇星期日。"))
     date = requested_date if not invalid_date else next_sunday()
     date = date or next_sunday()
     session = AttendanceSession.objects.filter(classroom=classroom, date=date).first() if classroom else None
@@ -168,15 +170,15 @@ def attendance(request):
     if request.method == "POST" and classroom and not invalid_date:
         statuses = {student.id: request.POST.get(f"status_{student.id}") for student in roster}
         if not roster:
-            messages.error(request, "請先新增至少一名現有學生。")
+            messages.error(request, _("請先新增至少一名現有學生。"))
         elif any(status not in dict(AttendanceRecord.STATUS_CHOICES) for status in statuses.values()):
-            messages.error(request, "儲存前請為每名學生標示出席或缺席。")
+            messages.error(request, _("儲存前請為每名學生標示出席或缺席。"))
         else:
             with transaction.atomic():
-                session, _ = AttendanceSession.objects.get_or_create(classroom=classroom, date=date)
+                session, _created = AttendanceSession.objects.get_or_create(classroom=classroom, date=date)
                 for student_id, status in statuses.items():
                     AttendanceRecord.objects.update_or_create(session=session, student_id=student_id, defaults={"status": status})
-            messages.success(request, "點名紀錄已儲存。")
+            messages.success(request, _("點名紀錄已儲存。"))
             return redirect(f"/attendance/?classroom={classroom.pk}&date={date.isoformat()}")
 
     rows = [{"student": student, "status": saved.get(student.id)} for student in roster]
@@ -230,17 +232,17 @@ def report_pdf(request):
     styles = getSampleStyleSheet()
     for style in (styles["Title"], styles["Normal"], styles["Heading3"]):
         style.fontName = "Chinese"
-    story = [Paragraph("主日學點名報表", styles["Title"]), Spacer(1, 4 * mm)]
-    filters = f"日期：{data['start']} 至 {data['end']}"
+    story = [Paragraph(_("主日學點名報表"), styles["Title"]), Spacer(1, 4 * mm)]
+    filters = _("日期：%(start)s 至 %(end)s") % {"start": date_format(data["start"], "DATE_FORMAT"), "end": date_format(data["end"], "DATE_FORMAT")}
     if data["classroom_id"]:
-        filters += f"｜班級：{Classroom.objects.filter(pk=data['classroom_id']).values_list('name', flat=True).first() or '未知'}"
+        filters += _("｜班級：%(classroom)s") % {"classroom": Classroom.objects.filter(pk=data["classroom_id"]).values_list("name", flat=True).first() or _("未知")}
     if data["student_id"]:
-        filters += f"｜學生：{Student.objects.filter(pk=data['student_id']).values_list('name', flat=True).first() or '未知'}"
-    story += [Paragraph(filters, styles["Normal"]), Paragraph(f"產生時間：{timezone.localtime():%Y-%m-%d %H:%M %Z}", styles["Normal"]), Spacer(1, 5 * mm)]
-    rows = [["日期", "班級", "學生", "狀態"]]
-    rows += [[str(record.session.date), record.session.classroom.name, record.student.name, record.get_status_display()] for record in data["records"]]
+        filters += _("｜學生：%(student)s") % {"student": Student.objects.filter(pk=data["student_id"]).values_list("name", flat=True).first() or _("未知")}
+    story += [Paragraph(filters, styles["Normal"]), Paragraph(_("產生時間：%(time)s") % {"time": date_format(timezone.localtime(), "DATETIME_FORMAT")}, styles["Normal"]), Spacer(1, 5 * mm)]
+    rows = [[_("日期"), _("班級"), _("學生"), _("狀態")]]
+    rows += [[date_format(record.session.date, "DATE_FORMAT"), record.session.classroom.name, record.student.name, record.get_status_display()] for record in data["records"]]
     if len(rows) == 1:
-        story.append(Paragraph("沒有符合篩選條件的點名紀錄。", styles["Normal"]))
+        story.append(Paragraph(_("沒有符合篩選條件的點名紀錄。"), styles["Normal"]))
     else:
         table = Table(rows, repeatRows=1, colWidths=[27 * mm, 42 * mm, 75 * mm, 25 * mm])
         table.setStyle(TableStyle([
@@ -253,7 +255,7 @@ def report_pdf(request):
         ]))
         story.append(table)
     story += [Spacer(1, 6 * mm), Paragraph(
-        f"出席：{data['present']}｜缺席：{data['absent']}｜已記錄堂數：{data['sessions']}｜出席率：{data['percentage']:.1f}%",
+        _("出席：%(present)s｜缺席：%(absent)s｜已記錄堂數：%(sessions)s｜出席率：%(percentage).1f%%") % data,
         styles["Heading3"],
     )]
     document.build(story)

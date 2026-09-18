@@ -1,14 +1,15 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% block content %}
-<h1>報表</h1>
+<h1>{% translate "報表" %}</h1>
 <form method="get" class="panel report-filters">
-  <div><label for="classroom">班級</label><select id="classroom" name="classroom"><option value="">所有班級</option>{% for class in classrooms %}<option value="{{ class.pk }}"{% if classroom_id == class.pk|stringformat:'s' %} selected{% endif %}>{{ class.name }}</option>{% endfor %}</select></div>
-  <div><label for="student">學生</label><select id="student" name="student"><option value="">所有學生</option>{% for student in students %}<option value="{{ student.pk }}"{% if student_id == student.pk|stringformat:'s' %} selected{% endif %}>{{ student.name }}（{{ student.classroom.name }}）</option>{% endfor %}</select></div>
-  <div><label for="start">開始日期</label><input id="start" name="start" type="date" value="{{ start|date:'Y-m-d' }}" required></div>
-  <div><label for="end">結束日期</label><input id="end" name="end" type="date" value="{{ end|date:'Y-m-d' }}" required></div>
-  <button type="submit">篩選</button>
+  <div><label for="classroom">{% translate "班級" %}</label><select id="classroom" name="classroom"><option value="">{% translate "所有班級" %}</option>{% for class in classrooms %}<option value="{{ class.pk }}"{% if classroom_id == class.pk|stringformat:'s' %} selected{% endif %}>{{ class.name }}</option>{% endfor %}</select></div>
+  <div><label for="student">{% translate "學生" %}</label><select id="student" name="student"><option value="">{% translate "所有學生" %}</option>{% for student in students %}<option value="{{ student.pk }}"{% if student_id == student.pk|stringformat:'s' %} selected{% endif %}>{{ student.name }}（{{ student.classroom.name }}）</option>{% endfor %}</select></div>
+  <div><label for="start">{% translate "開始日期" %}</label><input id="start" name="start" type="date" value="{{ start|date:'Y-m-d' }}" required></div>
+  <div><label for="end">{% translate "結束日期" %}</label><input id="end" name="end" type="date" value="{{ end|date:'Y-m-d' }}" required></div>
+  <button type="submit">{% translate "篩選" %}</button>
 </form>
-<div class="stats"><div><strong>{{ present }}</strong><span>出席</span></div><div><strong>{{ absent }}</strong><span>缺席</span></div><div><strong>{{ sessions }}</strong><span>已記錄堂數</span></div><div><strong>{{ percentage|floatformat:1 }}%</strong><span>出席率</span></div></div>
-<p><a class="button secondary" href="{% url 'report_pdf' %}?{{ request.GET.urlencode }}">下載 PDF</a></p>
-<div class="table-wrap"><table><thead><tr><th>日期</th><th>班級</th><th>學生</th><th>狀態</th></tr></thead><tbody>{% for record in records %}<tr><td>{{ record.session.date|date:"Y年n月j日" }}</td><td>{{ record.session.classroom.name }}</td><td>{{ record.student.name }}</td><td><span class="badge {{ record.status }}">{{ record.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="4">沒有符合篩選條件的點名紀錄。</td></tr>{% endfor %}</tbody></table></div>
+<div class="stats"><div><strong>{{ present }}</strong><span>{% translate "出席" %}</span></div><div><strong>{{ absent }}</strong><span>{% translate "缺席" %}</span></div><div><strong>{{ sessions }}</strong><span>{% translate "已記錄堂數" %}</span></div><div><strong>{{ percentage|floatformat:1 }}%</strong><span>{% translate "出席率" %}</span></div></div>
+<p><a class="button secondary" href="{% url 'report_pdf' %}?{{ request.GET.urlencode }}">{% translate "下載 PDF" %}</a></p>
+<div class="table-wrap"><table><thead><tr><th>{% translate "日期" %}</th><th>{% translate "班級" %}</th><th>{% translate "學生" %}</th><th>{% translate "狀態" %}</th></tr></thead><tbody>{% for record in records %}<tr><td>{{ record.session.date }}</td><td>{{ record.session.classroom.name }}</td><td>{{ record.student.name }}</td><td><span class="badge {{ record.status }}">{{ record.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="4">{% translate "沒有符合篩選條件的點名紀錄。" %}</td></tr>{% endfor %}</tbody></table></div>
 {% endblock %}

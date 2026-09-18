@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class Classroom(models.Model):
@@ -43,7 +44,7 @@ class AttendanceSession(models.Model):
 class AttendanceRecord(models.Model):
     PRESENT = "present"
     ABSENT = "absent"
-    STATUS_CHOICES = [(PRESENT, "出席"), (ABSENT, "缺席")]
+    STATUS_CHOICES = [(PRESENT, _("出席")), (ABSENT, _("缺席"))]
 
     session = models.ForeignKey(AttendanceSession, on_delete=models.CASCADE, related_name="records")
     student = models.ForeignKey(Student, on_delete=models.PROTECT, related_name="attendance_records")

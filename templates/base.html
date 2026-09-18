@@ -1,23 +1,30 @@
-{% load static %}<!doctype html>
-<html lang="zh-Hant">
+{% load i18n static %}{% get_current_language as LANGUAGE_CODE %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}主日學點名{% endblock %}</title>
+  <title>{% block title %}{% translate "主日學點名" %}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'attendance/style.css' %}">
 </head>
 <body>
   <header>
-    <a class="brand" href="{% url 'home' %}">主日學點名</a>
-    {% if user.is_authenticated %}
-      <nav aria-label="主選單">
-        <a href="{% url 'classes' %}">班級</a>
-        <a href="{% url 'students' %}">學生</a>
-        <a href="{% url 'attendance' %}">點名</a>
-        <a href="{% url 'reports' %}">報表</a>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link" type="submit">登出</button></form>
-      </nav>
-    {% endif %}
+    <a class="brand" href="{% url 'home' %}">{% translate "主日學點名" %}</a>
+    <div class="header-actions">
+      {% if user.is_authenticated %}
+        <nav aria-label="{% translate '主選單' %}">
+          <a href="{% url 'classes' %}">{% translate "班級" %}</a>
+          <a href="{% url 'students' %}">{% translate "學生" %}</a>
+          <a href="{% url 'attendance' %}">{% translate "點名" %}</a>
+          <a href="{% url 'reports' %}">{% translate "報表" %}</a>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link" type="submit">{% translate "登出" %}</button></form>
+        </nav>
+      {% endif %}
+      <form class="language-form" method="post" action="{% url 'set_language' %}">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="hidden" name="language" value="{% if LANGUAGE_CODE == 'en' %}zh-hant{% else %}en{% endif %}">
+        <button type="submit" aria-label="{% translate '切換語言' %}">{% if LANGUAGE_CODE == 'en' %}繁體中文{% else %}English{% endif %}</button>
+      </form>
+    </div>
   </header>
   <main>
     {% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}

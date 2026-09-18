@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% block title %}登入 · 主日學點名{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "登入 · 主日學點名" %}{% endblock %}
 {% block content %}
 <section class="panel narrow">
-  <h1>登入</h1>
+  <h1>{% translate "登入" %}</h1>
   <form method="post">{% csrf_token %}
-    <label for="password">密碼</label>
+    <label for="password">{% translate "密碼" %}</label>
     <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
     <input type="hidden" name="next" value="{{ next }}">
-    <button type="submit">登入</button>
+    <button type="submit">{% translate "登入" %}</button>
   </form>
 </section>
 {% endblock %}

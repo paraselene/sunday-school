@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import translation
 
 from .models import AttendanceRecord, AttendanceSession, Classroom, Student
 from .views import next_sunday, weekly_database_backup
@@ -57,6 +58,28 @@ class AttendanceTests(TestCase):
         self.assertNotContains(page, "使用者名稱")
         self.assertContains(self.client.post(reverse("login"), {"password": "錯誤"}), "密碼不正確")
         self.assertRedirects(self.client.post(reverse("login"), {"password": "共同密碼"}), reverse("home"))
+
+    def test_language_switch_translates_every_app_page(self):
+        response = self.client.post(reverse("set_language"), {"language": "en", "next": reverse("login")}, follow=True)
+        self.assertContains(response, "Password")
+        self.assertContains(response, 'name="language" value="zh-hant"')
+        self.login()
+        session = AttendanceSession.objects.create(classroom=self.classroom, date="2026-09-20")
+        AttendanceRecord.objects.create(session=session, student=self.anna, status="present")
+        pages = [
+            (reverse("home"), "Choose a class"),
+            (reverse("classes"), "All classes"),
+            (reverse("students") + f"?classroom={self.classroom.pk}", "Current students"),
+            (reverse("attendance") + f"?classroom={self.classroom.pk}&date=2026-09-20", "Load roster"),
+            (reverse("reports") + "?start=2026-01-01&end=2026-12-31", "Download PDF"),
+        ]
+        for url, text in pages:
+            page = self.client.get(url)
+            self.assertContains(page, text)
+            self.assertContains(page, "繁體中文")
+        self.assertContains(self.client.get(pages[-1][0]), "Present")
+        with translation.override("en"):
+            self.assertEqual(AttendanceRecord.objects.get().get_status_display(), "Present")
 
     def test_add_and_edit_student_contact_details(self):
         self.login()

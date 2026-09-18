@@ -1,0 +1,259 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: sunday-school\n"
+"PO-Revision-Date: 2026-09-18 00:00+0000\n"
+"Last-Translator: Sunday School\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "主日學點名"
+msgstr "Sunday School Attendance"
+
+msgid "主選單"
+msgstr "Main navigation"
+
+msgid "班級"
+msgstr "Class"
+
+msgid "學生"
+msgstr "Student"
+
+msgid "點名"
+msgstr "Attendance"
+
+msgid "報表"
+msgstr "Reports"
+
+msgid "登出"
+msgstr "Log out"
+
+msgid "切換語言"
+msgstr "Change language"
+
+msgid "登入 · 主日學點名"
+msgstr "Log in · Sunday School Attendance"
+
+msgid "登入"
+msgstr "Log in"
+
+msgid "密碼"
+msgstr "Password"
+
+msgid "選擇班級"
+msgstr "Choose a class"
+
+msgid "開始點名"
+msgstr "Start attendance"
+
+msgid "尚未建立班級。"
+msgstr "No classes have been created."
+
+msgid "建立第一個班級"
+msgstr "Create the first class"
+
+msgid "新增班級"
+msgstr "Add class"
+
+msgid "班級名稱"
+msgstr "Class name"
+
+msgid "所有班級"
+msgstr "All classes"
+
+#, python-format
+msgid "%(count)s 名現有學生"
+msgstr "%(count)s current students"
+
+msgid "管理"
+msgstr "Manage"
+
+msgid "日期（星期日）"
+msgstr "Date (Sunday)"
+
+msgid "請選擇星期日。"
+msgstr "Please choose a Sunday."
+
+msgid "載入名單"
+msgstr "Load roster"
+
+msgid "已封存"
+msgstr "Archived"
+
+msgid "出席"
+msgstr "Present"
+
+msgid "缺席"
+msgstr "Absent"
+
+msgid "沒有現有學生，請先新增學生再進行點名。"
+msgstr "There are no current students. Add a student before taking attendance."
+
+msgid "儲存點名紀錄"
+msgstr "Save attendance record"
+
+msgid "所有學生"
+msgstr "All students"
+
+msgid "開始日期"
+msgstr "Start date"
+
+msgid "結束日期"
+msgstr "End date"
+
+msgid "篩選"
+msgstr "Filter"
+
+msgid "已記錄堂數"
+msgstr "Recorded sessions"
+
+msgid "出席率"
+msgstr "Attendance rate"
+
+msgid "下載 PDF"
+msgstr "Download PDF"
+
+msgid "日期"
+msgstr "Date"
+
+msgid "狀態"
+msgstr "Status"
+
+msgid "沒有符合篩選條件的點名紀錄。"
+msgstr "No attendance records match the filters."
+
+msgid "查看"
+msgstr "View"
+
+#, python-format
+msgid "新增至 %(classroom_name)s"
+msgstr "Add to %(classroom_name)s"
+
+msgid "學生姓名"
+msgstr "Student name"
+
+msgid "緊急聯繫人"
+msgstr "Emergency contact"
+
+msgid "電話"
+msgstr "Phone"
+
+msgid "新增學生"
+msgstr "Add student"
+
+msgid "現有學生"
+msgstr "Current students"
+
+msgid "操作"
+msgstr "Actions"
+
+msgid "編輯"
+msgstr "Edit"
+
+msgid "封存"
+msgstr "Archive"
+
+#, python-format
+msgid "編輯 %(student_name)s"
+msgstr "Edit %(student_name)s"
+
+msgid "取消"
+msgstr "Cancel"
+
+msgid "儲存變更"
+msgstr "Save changes"
+
+msgid "沒有現有學生。"
+msgstr "There are no current students."
+
+msgid "已封存學生"
+msgstr "Archived students"
+
+msgid "取消封存"
+msgstr "Unarchive"
+
+msgid "沒有已封存學生。"
+msgstr "There are no archived students."
+
+msgid "資料庫備份失敗，請聯絡管理員。"
+msgstr "Database backup failed. Contact an administrator."
+
+msgid "密碼不正確。"
+msgstr "Incorrect password."
+
+msgid "登入密碼尚未設定。"
+msgstr "The login password has not been configured."
+
+msgid "請輸入班級名稱。"
+msgstr "Enter a class name."
+
+msgid "這個班級已經存在。"
+msgstr "This class already exists."
+
+msgid "班級已建立。"
+msgstr "Class created."
+
+msgid "請先選擇班級。"
+msgstr "Choose a class first."
+
+#, python-format
+msgid "已封存 %(student)s。"
+msgstr "Archived %(student)s."
+
+#, python-format
+msgid "已取消封存 %(student)s。"
+msgstr "Unarchived %(student)s."
+
+msgid "請輸入學生姓名。"
+msgstr "Enter a student name."
+
+msgid "學生資料太長。"
+msgstr "Student details are too long."
+
+msgid "這個班級已有同名學生。"
+msgstr "This class already has a student with that name."
+
+#, python-format
+msgid "已更新 %(student)s。"
+msgstr "Updated %(student)s."
+
+msgid "學生已新增。"
+msgstr "Student added."
+
+msgid "請先新增至少一名現有學生。"
+msgstr "Add at least one current student first."
+
+msgid "儲存前請為每名學生標示出席或缺席。"
+msgstr "Mark every student present or absent before saving."
+
+msgid "點名紀錄已儲存。"
+msgstr "Attendance record saved."
+
+msgid "主日學點名報表"
+msgstr "Sunday School Attendance Report"
+
+#, python-format
+msgid "日期：%(start)s 至 %(end)s"
+msgstr "Date: %(start)s to %(end)s"
+
+#, python-format
+msgid "｜班級：%(classroom)s"
+msgstr " | Class: %(classroom)s"
+
+#, python-format
+msgid "｜學生：%(student)s"
+msgstr " | Student: %(student)s"
+
+msgid "未知"
+msgstr "Unknown"
+
+#, python-format
+msgid "產生時間：%(time)s"
+msgstr "Generated: %(time)s"
+
+#, python-format
+msgid "出席：%(present)s｜缺席：%(absent)s｜已記錄堂數：%(sessions)s｜出席率：%(percentage).1f%%"
+msgstr "Present: %(present)s | Absent: %(absent)s | Recorded sessions: %(sessions)s | Attendance rate: %(percentage).1f%%"

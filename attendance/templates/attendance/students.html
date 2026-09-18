@@ -1,35 +1,36 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% block content %}
-<h1>學生</h1>
-<form method="get" class="panel filters"><div><label for="classroom">班級</label><select id="classroom" name="classroom" required><option value="">選擇班級</option>{% for class in classrooms %}<option value="{{ class.pk }}"{% if class == classroom %} selected{% endif %}>{{ class.name }}</option>{% endfor %}</select></div><button type="submit">查看</button></form>
+<h1>{% translate "學生" %}</h1>
+<form method="get" class="panel filters"><div><label for="classroom">{% translate "班級" %}</label><select id="classroom" name="classroom" required><option value="">{% translate "選擇班級" %}</option>{% for class in classrooms %}<option value="{{ class.pk }}"{% if class == classroom %} selected{% endif %}>{{ class.name }}</option>{% endfor %}</select></div><button type="submit">{% translate "查看" %}</button></form>
 {% if classroom %}
 <section class="panel">
-  <h2>新增至 {{ classroom.name }}</h2>
+  <h2>{% blocktranslate with classroom_name=classroom.name %}新增至 {{ classroom_name }}{% endblocktranslate %}</h2>
   <form method="post" class="student-form">
     {% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}">
-    <div><label for="name">學生姓名</label><input id="name" name="name" maxlength="100" required></div>
-    <div><label for="emergency-contact">緊急聯繫人</label><input id="emergency-contact" name="emergency_contact" maxlength="100" autocomplete="name"></div>
-    <div><label for="phone">電話</label><input id="phone" name="phone" type="tel" inputmode="tel" maxlength="30" autocomplete="tel"></div>
-    <button type="submit">新增學生</button>
+    <div><label for="name">{% translate "學生姓名" %}</label><input id="name" name="name" maxlength="100" required></div>
+    <div><label for="emergency-contact">{% translate "緊急聯繫人" %}</label><input id="emergency-contact" name="emergency_contact" maxlength="100" autocomplete="name"></div>
+    <div><label for="phone">{% translate "電話" %}</label><input id="phone" name="phone" type="tel" inputmode="tel" maxlength="30" autocomplete="tel"></div>
+    <button type="submit">{% translate "新增學生" %}</button>
   </form>
 </section>
 <section class="panel">
-  <h2>現有學生</h2>
-  <div class="table-wrap"><table><thead><tr><th>學生姓名</th><th>緊急聯繫人</th><th>電話</th><th>操作</th></tr></thead><tbody>{% for student in students %}
+  <h2>{% translate "現有學生" %}</h2>
+  <div class="table-wrap"><table><thead><tr><th>{% translate "學生姓名" %}</th><th>{% translate "緊急聯繫人" %}</th><th>{% translate "電話" %}</th><th>{% translate "操作" %}</th></tr></thead><tbody>{% for student in students %}
     <tr><td>{{ student.name }}</td><td>{{ student.emergency_contact|default:"—" }}</td><td>{{ student.phone|default:"—" }}</td><td class="student-actions">
-      <button type="button" class="secondary" aria-controls="edit-{{ student.pk }}" onclick="document.getElementById('edit-{{ student.pk }}').showModal()">編輯</button>
-      <form method="post">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="archive"><button class="secondary" type="submit">封存</button></form>
-      <dialog id="edit-{{ student.pk }}" class="edit-dialog" aria-labelledby="edit-title-{{ student.pk }}"><h3 id="edit-title-{{ student.pk }}">編輯 {{ student.name }}</h3><form method="post" class="student-edit-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="edit"><div><label for="name-{{ student.pk }}">學生姓名</label><input id="name-{{ student.pk }}" name="name" value="{{ student.name }}" maxlength="100" required></div><div><label for="emergency-contact-{{ student.pk }}">緊急聯繫人</label><input id="emergency-contact-{{ student.pk }}" name="emergency_contact" value="{{ student.emergency_contact }}" maxlength="100" autocomplete="name"></div><div><label for="phone-{{ student.pk }}">電話</label><input id="phone-{{ student.pk }}" name="phone" type="tel" inputmode="tel" value="{{ student.phone }}" maxlength="30" autocomplete="tel"></div><div class="dialog-actions"><button type="button" class="secondary" onclick="this.closest('dialog').close()">取消</button><button type="submit">儲存變更</button></div></form></dialog>
-    </td></tr>{% empty %}<tr><td colspan="4">沒有現有學生。</td></tr>{% endfor %}</tbody></table></div>
+      <button type="button" class="secondary" aria-controls="edit-{{ student.pk }}" onclick="document.getElementById('edit-{{ student.pk }}').showModal()">{% translate "編輯" %}</button>
+      <form method="post">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="archive"><button class="secondary" type="submit">{% translate "封存" %}</button></form>
+      <dialog id="edit-{{ student.pk }}" class="edit-dialog" aria-labelledby="edit-title-{{ student.pk }}"><h3 id="edit-title-{{ student.pk }}">{% blocktranslate with student_name=student.name %}編輯 {{ student_name }}{% endblocktranslate %}</h3><form method="post" class="student-edit-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="edit"><div><label for="name-{{ student.pk }}">{% translate "學生姓名" %}</label><input id="name-{{ student.pk }}" name="name" value="{{ student.name }}" maxlength="100" required></div><div><label for="emergency-contact-{{ student.pk }}">{% translate "緊急聯繫人" %}</label><input id="emergency-contact-{{ student.pk }}" name="emergency_contact" value="{{ student.emergency_contact }}" maxlength="100" autocomplete="name"></div><div><label for="phone-{{ student.pk }}">{% translate "電話" %}</label><input id="phone-{{ student.pk }}" name="phone" type="tel" inputmode="tel" value="{{ student.phone }}" maxlength="30" autocomplete="tel"></div><div class="dialog-actions"><button type="button" class="secondary" onclick="this.closest('dialog').close()">{% translate "取消" %}</button><button type="submit">{% translate "儲存變更" %}</button></div></form></dialog>
+    </td></tr>{% empty %}<tr><td colspan="4">{% translate "沒有現有學生。" %}</td></tr>{% endfor %}</tbody></table></div>
 </section>
 <section class="panel">
-  <h2>已封存學生</h2>
-  <div class="table-wrap"><table><thead><tr><th>學生姓名</th><th>緊急聯繫人</th><th>電話</th><th>操作</th></tr></thead><tbody>{% for student in archived_students %}
+  <h2>{% translate "已封存學生" %}</h2>
+  <div class="table-wrap"><table><thead><tr><th>{% translate "學生姓名" %}</th><th>{% translate "緊急聯繫人" %}</th><th>{% translate "電話" %}</th><th>{% translate "操作" %}</th></tr></thead><tbody>{% for student in archived_students %}
     <tr><td>{{ student.name }}</td><td>{{ student.emergency_contact|default:"—" }}</td><td>{{ student.phone|default:"—" }}</td><td class="student-actions">
-      <button type="button" class="secondary" aria-controls="edit-{{ student.pk }}" onclick="document.getElementById('edit-{{ student.pk }}').showModal()">編輯</button>
-      <form method="post">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="unarchive"><button type="submit">取消封存</button></form>
-      <dialog id="edit-{{ student.pk }}" class="edit-dialog" aria-labelledby="edit-title-{{ student.pk }}"><h3 id="edit-title-{{ student.pk }}">編輯 {{ student.name }}</h3><form method="post" class="student-edit-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="edit"><div><label for="name-{{ student.pk }}">學生姓名</label><input id="name-{{ student.pk }}" name="name" value="{{ student.name }}" maxlength="100" required></div><div><label for="emergency-contact-{{ student.pk }}">緊急聯繫人</label><input id="emergency-contact-{{ student.pk }}" name="emergency_contact" value="{{ student.emergency_contact }}" maxlength="100" autocomplete="name"></div><div><label for="phone-{{ student.pk }}">電話</label><input id="phone-{{ student.pk }}" name="phone" type="tel" inputmode="tel" value="{{ student.phone }}" maxlength="30" autocomplete="tel"></div><div class="dialog-actions"><button type="button" class="secondary" onclick="this.closest('dialog').close()">取消</button><button type="submit">儲存變更</button></div></form></dialog>
-    </td></tr>{% empty %}<tr><td colspan="4">沒有已封存學生。</td></tr>{% endfor %}</tbody></table></div>
+      <button type="button" class="secondary" aria-controls="edit-{{ student.pk }}" onclick="document.getElementById('edit-{{ student.pk }}').showModal()">{% translate "編輯" %}</button>
+      <form method="post">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="unarchive"><button type="submit">{% translate "取消封存" %}</button></form>
+      <dialog id="edit-{{ student.pk }}" class="edit-dialog" aria-labelledby="edit-title-{{ student.pk }}"><h3 id="edit-title-{{ student.pk }}">{% blocktranslate with student_name=student.name %}編輯 {{ student_name }}{% endblocktranslate %}</h3><form method="post" class="student-edit-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="student" value="{{ student.pk }}"><input type="hidden" name="action" value="edit"><div><label for="name-{{ student.pk }}">{% translate "學生姓名" %}</label><input id="name-{{ student.pk }}" name="name" value="{{ student.name }}" maxlength="100" required></div><div><label for="emergency-contact-{{ student.pk }}">{% translate "緊急聯繫人" %}</label><input id="emergency-contact-{{ student.pk }}" name="emergency_contact" value="{{ student.emergency_contact }}" maxlength="100" autocomplete="name"></div><div><label for="phone-{{ student.pk }}">{% translate "電話" %}</label><input id="phone-{{ student.pk }}" name="phone" type="tel" inputmode="tel" value="{{ student.phone }}" maxlength="30" autocomplete="tel"></div><div class="dialog-actions"><button type="button" class="secondary" onclick="this.closest('dialog').close()">{% translate "取消" %}</button><button type="submit">{% translate "儲存變更" %}</button></div></form></dialog>
+    </td></tr>{% empty %}<tr><td colspan="4">{% translate "沒有已封存學生。" %}</td></tr>{% endfor %}</tbody></table></div>
 </section>
 {% endif %}
 {% endblock %}
