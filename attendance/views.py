@@ -99,6 +99,30 @@ def classes(request):
     return render(request, "attendance/classes.html", {"classrooms": Classroom.objects.annotate(student_count=Count("students", filter=Q(students__active=True)))})
 
 
+def save_student(request, classroom, student=None):
+    data = {field: request.POST.get(field, "").strip() for field in ("name", "emergency_contact", "phone")}
+    duplicates = Student.objects.filter(classroom=classroom, name__iexact=data["name"])
+    if student:
+        duplicates = duplicates.exclude(pk=student.pk)
+    if not data["name"]:
+        messages.error(request, _("請輸入學生姓名。"))
+    elif len(data["name"]) > 100 or len(data["emergency_contact"]) > 100 or len(data["phone"]) > 30:
+        messages.error(request, _("學生資料太長。"))
+    elif duplicates.exists():
+        messages.error(request, _("這個班級已有同名學生。"))
+    else:
+        if student:
+            for field, value in data.items():
+                setattr(student, field, value)
+            student.save(update_fields=list(data))
+            messages.success(request, _("已更新 %(student)s。") % {"student": student.name})
+        else:
+            Student.objects.create(classroom=classroom, **data)
+            messages.success(request, _("學生已新增。"))
+        return True
+    return False
+
+
 @login_required
 def students(request):
     classroom = selected_classroom(request)
@@ -113,31 +137,8 @@ def students(request):
             student.save(update_fields=["active"])
             messages.success(request, (_("已封存 %(student)s。") if action == "archive" else _("已取消封存 %(student)s。")) % {"student": student.name})
         else:
-            data = {
-                "name": request.POST.get("name", "").strip(),
-                "emergency_contact": request.POST.get("emergency_contact", "").strip(),
-                "phone": request.POST.get("phone", "").strip(),
-            }
             student = get_object_or_404(Student, pk=request.POST.get("student"), classroom=classroom) if action == "edit" else None
-            if not data["name"]:
-                messages.error(request, _("請輸入學生姓名。"))
-            elif len(data["name"]) > 100 or len(data["emergency_contact"]) > 100 or len(data["phone"]) > 30:
-                messages.error(request, _("學生資料太長。"))
-            else:
-                duplicates = Student.objects.filter(classroom=classroom, name__iexact=data["name"])
-                if student:
-                    duplicates = duplicates.exclude(pk=student.pk)
-                if duplicates.exists():
-                    messages.error(request, _("這個班級已有同名學生。"))
-                elif student:
-                    student.name = data["name"]
-                    student.emergency_contact = data["emergency_contact"]
-                    student.phone = data["phone"]
-                    student.save(update_fields=["name", "emergency_contact", "phone"])
-                    messages.success(request, _("已更新 %(student)s。") % {"student": student.name})
-                else:
-                    Student.objects.create(classroom=classroom, **data)
-                    messages.success(request, _("學生已新增。"))
+            save_student(request, classroom, student)
         return redirect(f"/students/?classroom={classroom.pk}")
     return render(request, "attendance/students.html", {
         "classrooms": Classroom.objects.all(),
@@ -167,7 +168,12 @@ def attendance(request):
     roster = attendance_roster(classroom, session) if classroom else []
     saved = {record.student_id: record.status for record in session.records.all()} if session else {}
 
-    if request.method == "POST" and classroom and not invalid_date:
+    adding_student = request.method == "POST" and request.POST.get("action") == "add_student"
+    student_added = False
+    if adding_student and classroom and not invalid_date:
+        student_added = save_student(request, classroom)
+        roster = attendance_roster(classroom, session)
+    elif request.method == "POST" and classroom and not invalid_date:
         statuses = {student.id: request.POST.get(f"status_{student.id}") for student in roster}
         if not roster:
             messages.error(request, _("請先新增至少一名現有學生。"))
@@ -181,9 +187,15 @@ def attendance(request):
             messages.success(request, _("點名紀錄已儲存。"))
             return redirect(f"/attendance/?classroom={classroom.pk}&date={date.isoformat()}")
 
-    rows = [{"student": student, "status": saved.get(student.id)} for student in roster]
+    rows = []
+    for student in roster:
+        status = saved.get(student.id)
+        if request.method == "POST":
+            status = request.POST.get(f"status_{student.id}", status)
+        rows.append({"student": student, "status": status})
     return render(request, "attendance/attendance.html", {
         "classrooms": Classroom.objects.all(), "classroom": classroom, "date": date, "rows": rows,
+        "add_student_errors": adding_student and not student_added,
     })
 
 

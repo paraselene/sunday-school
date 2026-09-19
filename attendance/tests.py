@@ -136,6 +136,33 @@ class AttendanceTests(TestCase):
         self.assertContains(response, "請選擇星期日。")
         self.assertFalse(AttendanceSession.objects.exists())
 
+    def test_add_student_during_attendance_preserves_marks_and_validates(self):
+        self.login()
+        url = reverse("attendance")
+        data = {"classroom": self.classroom.pk, "date": "2026-09-20", "action": "add_student", "name": " Cara ", "emergency_contact": "Mother", "phone": "0212345678", f"status_{self.anna.pk}": "present", f"status_{self.ben.pk}": "absent"}
+        page = self.client.post(url, data)
+        cara = Student.objects.get(name="Cara", classroom=self.classroom)
+        self.assertEqual((cara.emergency_contact, cara.phone), ("Mother", "0212345678"))
+        self.assertContains(page, f'name="status_{cara.pk}"')
+        self.assertContains(page, f'name="status_{self.anna.pk}" value="present" checked')
+        self.assertContains(page, f'name="status_{self.ben.pk}" value="absent" checked')
+        self.assertEqual(page.context["date"], date(2026, 9, 20))
+        self.assertFalse(AttendanceSession.objects.exists())
+        for changes, error in [({"name": "cArA"}, "這個班級已有同名學生。"), ({"name": " "}, "請輸入學生姓名。"), ({"phone": "1" * 31}, "學生資料太長。"), ({"date": "2026-09-21", "name": "Dana"}, "請選擇星期日。")]:
+            page = self.client.post(url, data | changes)
+            self.assertContains(page, error)
+            self.assertContains(page, f'name="status_{self.anna.pk}" value="present" checked')
+            self.assertContains(page, f'name="status_{self.ben.pk}" value="absent" checked')
+            self.assertEqual(Student.objects.count(), 3)
+        data.pop("action")
+        data.update({f"status_{self.ben.pk}": "absent", f"status_{cara.pk}": "present"})
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.assertEqual(AttendanceRecord.objects.count(), 3)
+        empty_class = Classroom.objects.create(name="New class")
+        self.assertContains(self.client.get(url, {"classroom": empty_class.pk}), 'aria-controls="add-student"')
+        self.client.post(url, {"classroom": empty_class.pk, "date": "2026-09-20", "action": "add_student", "name": "First student"})
+        self.assertTrue(empty_class.students.filter(name="First student").exists())
+
     def test_reports_totals_filters_empty_and_pdf(self):
         self.login()
         session = AttendanceSession.objects.create(classroom=self.classroom, date="2026-09-13")

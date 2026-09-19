@@ -8,10 +8,20 @@
   <button type="submit">{% translate "載入名單" %}</button>
 </form>
 {% if classroom %}
-<form method="post" class="panel attendance-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
+<form id="attendance-form" method="post" class="panel attendance-form">{% csrf_token %}<input type="hidden" name="classroom" value="{{ classroom.pk }}"><input type="hidden" name="date" value="{{ date|date:'Y-m-d' }}">
   <h2>{{ classroom.name }} · {{ date }}</h2>
+  <button type="button" class="secondary" aria-controls="add-student" onclick="document.getElementById('add-student').showModal()">{% translate "新增學生" %}</button>
   {% for row in rows %}<fieldset><legend>{{ row.student.name }}{% if not row.student.active %} <small>（{% translate "已封存" %}）</small>{% endif %}</legend><div class="status-options"><label class="present"><input type="radio" name="status_{{ row.student.pk }}" value="present"{% if row.status == 'present' %} checked{% endif %} required> {% translate "出席" %}</label><label class="absent"><input type="radio" name="status_{{ row.student.pk }}" value="absent"{% if row.status == 'absent' %} checked{% endif %}> {% translate "缺席" %}</label></div></fieldset>{% empty %}<p>{% translate "沒有現有學生，請先新增學生再進行點名。" %}</p>{% endfor %}
   {% if rows %}<button type="submit">{% translate "儲存點名紀錄" %}</button>{% endif %}
 </form>
+<dialog id="add-student" class="edit-dialog" aria-labelledby="add-student-title">
+  <h3 id="add-student-title">{% translate "新增學生" %}</h3>
+  <div class="student-edit-form">
+    <p><label for="student-name">{% translate "學生姓名" %}</label><input form="attendance-form" id="student-name" name="name" maxlength="100" value="{% if add_student_errors %}{{ request.POST.name }}{% endif %}" autofocus></p>
+    <p><label for="emergency-contact">{% translate "緊急聯繫人" %}</label><input form="attendance-form" id="emergency-contact" name="emergency_contact" maxlength="100" autocomplete="name" value="{% if add_student_errors %}{{ request.POST.emergency_contact }}{% endif %}"></p>
+    <p><label for="phone">{% translate "電話" %}</label><input form="attendance-form" id="phone" name="phone" type="tel" inputmode="tel" maxlength="30" autocomplete="tel" value="{% if add_student_errors %}{{ request.POST.phone }}{% endif %}"></p>
+    <div class="dialog-actions"><button type="button" class="secondary" onclick="this.closest('dialog').close()">{% translate "取消" %}</button><button form="attendance-form" type="submit" name="action" value="add_student" formnovalidate>{% translate "新增學生" %}</button></div>
+  </div>
+</dialog>
 {% endif %}
 {% endblock %}
