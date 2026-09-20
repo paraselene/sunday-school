@@ -51,6 +51,28 @@ class AttendanceTests(TestCase):
         for name in ["home", "classes", "students", "attendance", "reports", "report_pdf"]:
             self.assertRedirects(self.client.get(reverse(name)), f"/login/?next={reverse(name)}")
 
+    def test_home_screen_metadata_available_before_login(self):
+        from django.contrib.staticfiles import finders
+        from PIL import Image
+
+        for language, name in [("zh-hant", "主日學點名"), ("en", "Sunday School Attendance")]:
+            self.client.cookies["django_language"] = language
+            page = self.client.get(reverse("login"))
+            self.assertContains(page, 'rel="apple-touch-icon"')
+            self.assertContains(page, 'rel="manifest"')
+            self.assertContains(page, f'name="apple-mobile-web-app-title" content="{name}"')
+            response = self.client.get(reverse("web_manifest"))
+            self.assertEqual(response["Content-Type"], "application/manifest+json")
+            import json
+            manifest = json.loads(response.content)
+            self.assertEqual(manifest["name"], name)
+            self.assertEqual(manifest["display"], "standalone")
+            self.assertEqual((manifest["start_url"], manifest["scope"]), ("/", "/"))
+        for filename, size in [("apple-touch-icon.png", 180), ("icon-192.png", 192), ("icon-512.png", 512)]:
+            with Image.open(finders.find(f"attendance/icons/{filename}")) as icon:
+                self.assertEqual(icon.size, (size, size))
+                self.assertEqual(icon.mode, "RGB")
+
     @override_settings(LOGIN_PASSWORD="共同密碼")
     def test_shared_password_login_needs_no_username(self):
         page = self.client.get(reverse("login"))
