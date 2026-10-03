@@ -42,3 +42,9 @@ PDF 使用本機 `fonts/NotoSansTC[wght].ttf` 的 Noto Sans TC（思源黑體繁
 mkdir -p fonts
 curl -fL -o 'fonts/NotoSansTC[wght].ttf' 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf'
 ```
+
+## 出席報表
+
+報表顯示整體出席率、已記錄學生人數、班級概況、每週出席趨勢及按出席率排列的學生摘要。現有學生在篩選期間最後連續兩堂或以上已記錄的課堂缺席，會列入關懷提醒；已封存學生仍保留歷史。所有統計只計算已儲存紀錄，不把未點名的主日或學生加入前的日期視為缺席。「最後出席」也只計算篩選期間。
+
+日期、班級及學生篩選會同時套用至摘要及 PDF。逐筆紀錄可展開查看，PDF 以摘要為主。

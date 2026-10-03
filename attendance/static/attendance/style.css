@@ -40,3 +40,5 @@ main{
 .dialog-actions{flex-wrap:wrap}
 @media(min-width:700px){:root{--page-gap:2rem}}
 @media(display-mode:standalone){nav a,.link,.language-form button{min-height:44px;display:inline-flex;align-items:center}}
+
+.report-note{color:#6d6075}.rate{display:flex;align-items:center;gap:.6rem;white-space:nowrap}.rate meter{width:6rem;accent-color:#6f3ca0}summary{cursor:pointer;font-weight:700}details[open] summary{margin-bottom:1rem}

@@ -257,3 +257,57 @@ msgstr "Generated: %(time)s"
 #, python-format
 msgid "出席：%(present)s｜缺席：%(absent)s｜已記錄堂數：%(sessions)s｜出席率：%(percentage).1f%%"
 msgstr "Present: %(present)s | Absent: %(absent)s | Recorded sessions: %(sessions)s | Attendance rate: %(percentage).1f%%"
+
+msgid "學生人數"
+msgstr "Students with records"
+
+msgid "關懷提醒"
+msgstr "Follow-up"
+
+msgid "統計只計算已儲存的點名紀錄；未點名的日期不算缺席。"
+msgstr "Rates use saved attendance records only; unrecorded dates are not counted as absences."
+
+msgid "關懷提醒：現有學生在篩選期間內，最後連續兩堂或以上已記錄的課堂缺席。"
+msgstr "Follow-up: current students whose latest two or more recorded sessions in the selected period were absent."
+
+msgid "沒有學生符合關懷提醒條件。"
+msgstr "No students meet the follow-up criteria."
+
+msgid "最後點名"
+msgstr "Last recorded"
+
+msgid "連續缺席 %(count)s 堂"
+msgstr "Absent for %(count)s consecutive sessions"
+
+msgid "每週趨勢"
+msgstr "Weekly trend"
+
+msgid "班級概況"
+msgstr "Class overview"
+
+msgid "出席人次"
+msgstr "Present marks"
+
+msgid "缺席人次"
+msgstr "Absent marks"
+
+msgid "學生出席概況"
+msgstr "Student attendance overview"
+
+msgid "出席／已記錄"
+msgstr "Present / recorded"
+
+msgid "最後出席"
+msgstr "Last attended"
+
+msgid "期間內未曾出席"
+msgstr "No attendance in this period"
+
+msgid "連續缺席堂數"
+msgstr "Consecutive absences"
+
+msgid "按出席率由低至高排列；已封存學生保留歷史，但不列入關懷提醒。"
+msgstr "Sorted by attendance rate, lowest first. Archived students retain their history and are excluded from follow-up."
+
+msgid "查看逐筆點名紀錄"
+msgstr "View individual attendance records"

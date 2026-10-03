@@ -3,6 +3,7 @@ from hmac import compare_digest
 from io import BytesIO
 from pathlib import Path
 import sqlite3
+from xml.sax.saxutils import escape
 
 from django.conf import settings
 from django.contrib import messages
@@ -213,25 +214,58 @@ def report_data(request):
     if student_id:
         records = records.filter(student_id=student_id)
     records = records.order_by("session__date", "session__classroom__name", "student__name")
-    totals = records.aggregate(present=Count("id", filter=Q(status=AttendanceRecord.PRESENT)), absent=Count("id", filter=Q(status=AttendanceRecord.ABSENT)))
-    total = totals["present"] + totals["absent"]
+    records = list(records)
+    classes, weeks, students = {}, {}, {}
+    session_ids = set()
+    for record in records:
+        session_ids.add(record.session_id)
+        classroom = classes.setdefault(record.session.classroom_id, {
+            "name": record.session.classroom.name, "present": 0, "absent": 0, "sessions": set(), "students": set(),
+        })
+        week = weeks.setdefault(record.session.date, {"date": record.session.date, "present": 0, "absent": 0})
+        student = students.setdefault(record.student_id, {
+            "student": record.student, "classroom": record.session.classroom.name,
+            "present": 0, "absent": 0, "streak": 0, "last_present": None,
+        })
+        for group in (classroom, week, student):
+            group[record.status] += 1
+        classroom["sessions"].add(record.session_id)
+        classroom["students"].add(record.student_id)
+        student["last_recorded"] = record.session.date
+        if record.status == AttendanceRecord.PRESENT:
+            student["last_present"] = record.session.date
+            student["streak"] = 0
+        else:
+            student["streak"] += 1
+    for group in [*classes.values(), *weeks.values(), *students.values()]:
+        group["total"] = group["present"] + group["absent"]
+        group["percentage"] = round(group["present"] * 100 / group["total"], 1)
+    for classroom in classes.values():
+        classroom["sessions"] = len(classroom["sessions"])
+        classroom["students"] = len(classroom["students"])
+    student_rows = sorted(students.values(), key=lambda row: (row["percentage"], row["student"].name, row["student"].pk))
+    present = sum(row["present"] for row in student_rows)
+    absent = len(records) - present
     return {
-        "records": records,
-        "start": start,
-        "end": end,
-        "classroom_id": classroom_id,
-        "student_id": student_id,
-        "present": totals["present"],
-        "absent": totals["absent"],
-        "sessions": records.values("session_id").distinct().count(),
-        "percentage": round(totals["present"] * 100 / total, 1) if total else 0,
+        "records": records, "start": start, "end": end,
+        "classroom_id": classroom_id, "student_id": student_id,
+        "present": present, "absent": absent, "sessions": len(session_ids),
+        "percentage": round(present * 100 / len(records), 1) if records else 0,
+        "student_count": len(students),
+        "class_summaries": sorted(classes.values(), key=lambda row: row["name"]),
+        "weekly_summaries": list(weeks.values()),
+        "student_summaries": student_rows,
+        "follow_up": sorted(
+            (row for row in student_rows if row["student"].active and row["streak"] >= 2),
+            key=lambda row: (-row["streak"], row["student"].name),
+        ),
     }
 
 
 @login_required
 def reports(request):
     context = report_data(request)
-    context.update({"classrooms": Classroom.objects.all(), "students": Student.objects.all()})
+    context.update({"classrooms": Classroom.objects.all(), "students": Student.objects.select_related("classroom")})
     return render(request, "attendance/reports.html", context)
 
 
@@ -250,25 +284,49 @@ def report_pdf(request):
         filters += _("｜班級：%(classroom)s") % {"classroom": Classroom.objects.filter(pk=data["classroom_id"]).values_list("name", flat=True).first() or _("未知")}
     if data["student_id"]:
         filters += _("｜學生：%(student)s") % {"student": Student.objects.filter(pk=data["student_id"]).values_list("name", flat=True).first() or _("未知")}
-    story += [Paragraph(filters, styles["Normal"]), Paragraph(_("產生時間：%(time)s") % {"time": date_format(timezone.localtime(), "DATETIME_FORMAT")}, styles["Normal"]), Spacer(1, 5 * mm)]
-    rows = [[_("日期"), _("班級"), _("學生"), _("狀態")]]
-    rows += [[date_format(record.session.date, "DATE_FORMAT"), record.session.classroom.name, record.student.name, record.get_status_display()] for record in data["records"]]
-    if len(rows) == 1:
-        story.append(Paragraph(_("沒有符合篩選條件的點名紀錄。"), styles["Normal"]))
-    else:
-        table = Table(rows, repeatRows=1, colWidths=[27 * mm, 42 * mm, 75 * mm, 25 * mm])
+    story += [Paragraph(escape(filters), styles["Normal"]), Paragraph(_("產生時間：%(time)s") % {"time": date_format(timezone.localtime(), "DATETIME_FORMAT")}, styles["Normal"]), Spacer(1, 5 * mm)]
+    story += [Paragraph(
+        _("出席：%(present)s｜缺席：%(absent)s｜已記錄堂數：%(sessions)s｜出席率：%(percentage).1f%%") % data,
+        styles["Heading3"]),
+        Paragraph(_("統計只計算已儲存的點名紀錄；未點名的日期不算缺席。"), styles["Normal"]),
+        Spacer(1, 4 * mm)]
+
+    def summary_table(title, headings, rows, widths):
+        story.append(Paragraph(title, styles["Heading3"]))
+        header_style = styles["Normal"].clone("TableHeader", textColor=colors.white)
+        cells = [[Paragraph(escape(str(value)), header_style) for value in headings]]
+        cells += [[Paragraph(escape(str(value)), styles["Normal"]) for value in row] for row in rows]
+        table = Table(cells, repeatRows=1, colWidths=[width * mm for width in widths])
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#5b2a86")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, -1), "Chinese"),
-            ("GRID", (0, 0), (-1, -1), .25, colors.grey),
+            ("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#ded5e6")),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f1f5f3")]),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f7f4fa")]),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ]))
-        story.append(table)
-    story += [Spacer(1, 6 * mm), Paragraph(
-        _("出席：%(present)s｜缺席：%(absent)s｜已記錄堂數：%(sessions)s｜出席率：%(percentage).1f%%") % data,
-        styles["Heading3"],
-    )]
+        story.extend([table, Spacer(1, 4 * mm)])
+
+    if not data["records"]:
+        story.append(Paragraph(_("沒有符合篩選條件的點名紀錄。"), styles["Normal"]))
+    else:
+        story.append(Paragraph(_("關懷提醒：現有學生在篩選期間內，最後連續兩堂或以上已記錄的課堂缺席。"), styles["Normal"]))
+        if data["follow_up"]:
+            summary_table(_("關懷提醒"), [_("學生"), _("班級"), _("連續缺席堂數"), _("最後出席")], [
+                [row["student"].name, row["classroom"], row["streak"], row["last_present"].isoformat() if row["last_present"] else _("期間內未曾出席")]
+                for row in data["follow_up"]
+            ], [50, 45, 35, 50])
+        else:
+            story.append(Paragraph(_("沒有學生符合關懷提醒條件。"), styles["Normal"]))
+        summary_table(_("班級概況"), [_("班級"), _("學生人數"), _("已記錄堂數"), _("出席人次"), _("出席率")], [
+            [row["name"], row["students"], row["sessions"], row["present"], f'{row["percentage"]:.1f}%'] for row in data["class_summaries"]
+        ], [60, 30, 30, 30, 30])
+        summary_table(_("每週趨勢"), [_("日期"), _("出席人次"), _("缺席人次"), _("出席率")], [
+            [row["date"].isoformat(), row["present"], row["absent"], f'{row["percentage"]:.1f}%'] for row in data["weekly_summaries"]
+        ], [60, 40, 40, 40])
+        summary_table(_("學生出席概況"), [_("學生"), _("班級"), _("出席／已記錄"), _("出席率"), _("最後出席")], [
+            [row["student"].name, row["classroom"], f'{row["present"]}/{row["total"]}', f'{row["percentage"]:.1f}%', row["last_present"].isoformat() if row["last_present"] else _("期間內未曾出席")]
+            for row in data["student_summaries"]
+        ], [45, 40, 30, 25, 40])
     document.build(story)
     return HttpResponse(buffer.getvalue(), content_type="application/pdf", headers={"Content-Disposition": 'attachment; filename="attendance-report.pdf"'})

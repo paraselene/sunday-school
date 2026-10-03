@@ -9,7 +9,30 @@
   <div><label for="end">{% translate "結束日期" %}</label><input id="end" name="end" type="date" value="{{ end|date:'Y-m-d' }}" required></div>
   <button type="submit">{% translate "篩選" %}</button>
 </form>
-<div class="stats"><div><strong>{{ present }}</strong><span>{% translate "出席" %}</span></div><div><strong>{{ absent }}</strong><span>{% translate "缺席" %}</span></div><div><strong>{{ sessions }}</strong><span>{% translate "已記錄堂數" %}</span></div><div><strong>{{ percentage|floatformat:1 }}%</strong><span>{% translate "出席率" %}</span></div></div>
+<div class="stats"><div><strong>{{ percentage|floatformat:1 }}%</strong><span>{% translate "出席率" %}</span></div><div><strong>{{ student_count }}</strong><span>{% translate "學生人數" %}</span></div><div><strong>{{ sessions }}</strong><span>{% translate "已記錄堂數" %}</span></div><div><strong>{{ follow_up|length }}</strong><span>{% translate "關懷提醒" %}</span></div></div>
+<p class="report-note">{% translate "統計只計算已儲存的點名紀錄；未點名的日期不算缺席。" %}</p>
 <p><a class="button secondary" href="{% url 'report_pdf' %}?{{ request.GET.urlencode }}">{% translate "下載 PDF" %}</a></p>
-<div class="table-wrap"><table><thead><tr><th>{% translate "日期" %}</th><th>{% translate "班級" %}</th><th>{% translate "學生" %}</th><th>{% translate "狀態" %}</th></tr></thead><tbody>{% for record in records %}<tr><td>{{ record.session.date }}</td><td>{{ record.session.classroom.name }}</td><td>{{ record.student.name }}</td><td><span class="badge {{ record.status }}">{{ record.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="4">{% translate "沒有符合篩選條件的點名紀錄。" %}</td></tr>{% endfor %}</tbody></table></div>
+{% if records %}
+<section class="panel">
+  <h2>{% translate "關懷提醒" %}</h2>
+  <p>{% translate "關懷提醒：現有學生在篩選期間內，最後連續兩堂或以上已記錄的課堂缺席。" %}</p>
+  <ul class="item-list">{% for row in follow_up %}<li><div><strong>{{ row.student.name }}</strong><small>{{ row.classroom }} · {% translate "最後點名" %} {{ row.last_recorded }}</small></div><span class="badge absent">{% blocktranslate with count=row.streak %}連續缺席 {{ count }} 堂{% endblocktranslate %}</span></li>{% empty %}<li>{% translate "沒有學生符合關懷提醒條件。" %}</li>{% endfor %}</ul>
+</section>
+<section class="panel">
+  <h2>{% translate "每週趨勢" %}</h2>
+  <div class="table-wrap"><table><thead><tr><th>{% translate "日期" %}</th><th>{% translate "出席人次" %}</th><th>{% translate "缺席人次" %}</th><th>{% translate "出席率" %}</th></tr></thead><tbody>{% for row in weekly_summaries %}<tr><td>{{ row.date }}</td><td>{{ row.present }}</td><td>{{ row.absent }}</td><td><div class="rate"><meter min="0" max="100" value="{{ row.percentage|stringformat:'.1f' }}" aria-label="{% translate '出席率' %}">{{ row.percentage|floatformat:1 }}%</meter><span>{{ row.percentage|floatformat:1 }}%</span></div></td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="panel">
+  <h2>{% translate "班級概況" %}</h2>
+  <div class="table-wrap"><table><thead><tr><th>{% translate "班級" %}</th><th>{% translate "學生人數" %}</th><th>{% translate "已記錄堂數" %}</th><th>{% translate "出席人次" %}</th><th>{% translate "出席率" %}</th></tr></thead><tbody>{% for row in class_summaries %}<tr><td>{{ row.name }}</td><td>{{ row.students }}</td><td>{{ row.sessions }}</td><td>{{ row.present }}</td><td>{{ row.percentage|floatformat:1 }}%</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="panel">
+  <h2>{% translate "學生出席概況" %}</h2>
+  <p class="report-note">{% translate "按出席率由低至高排列；已封存學生保留歷史，但不列入關懷提醒。" %}</p>
+  <div class="table-wrap"><table><thead><tr><th>{% translate "學生" %}</th><th>{% translate "班級" %}</th><th>{% translate "出席／已記錄" %}</th><th>{% translate "出席率" %}</th><th>{% translate "最後出席" %}</th></tr></thead><tbody>{% for row in student_summaries %}<tr><td>{{ row.student.name }}{% if not row.student.active %} <small>({% translate "已封存" %})</small>{% endif %}</td><td>{{ row.classroom }}</td><td>{{ row.present }} / {{ row.total }}</td><td>{{ row.percentage|floatformat:1 }}%</td><td>{{ row.last_present|date|default:_("期間內未曾出席") }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<details class="panel"><summary>{% translate "查看逐筆點名紀錄" %} ({{ records|length }})</summary>
+<div class="table-wrap"><table><thead><tr><th>{% translate "日期" %}</th><th>{% translate "班級" %}</th><th>{% translate "學生" %}</th><th>{% translate "狀態" %}</th></tr></thead><tbody>{% for record in records %}<tr><td>{{ record.session.date }}</td><td>{{ record.session.classroom.name }}</td><td>{{ record.student.name }}</td><td><span class="badge {{ record.status }}">{{ record.get_status_display }}</span></td></tr>{% endfor %}</tbody></table></div>
+</details>
+{% else %}<p class="panel">{% translate "沒有符合篩選條件的點名紀錄。" %}</p>{% endif %}
 {% endblock %}

@@ -201,3 +201,37 @@ class AttendanceTests(TestCase):
         self.assertEqual(pdf["Content-Type"], "application/pdf")
         self.assertTrue(pdf.content.startswith(b"%PDF"))
         self.assertEqual(self.client.get(reverse("reports"), {"student": "invalid"}).status_code, 404)
+
+    def test_report_summaries_follow_up_and_recorded_denominators(self):
+        self.login()
+        other = Classroom.objects.create(name="Seniors")
+        cara = Student.objects.create(name="Cara", classroom=other)
+        archived = Student.objects.create(name="Archived", classroom=self.classroom, active=False)
+        # A missing Sunday is not an absence; newcomers have only their own records.
+        for day, anna_status, ben_status in [("2026-09-06", "present", "absent"), ("2026-09-20", "absent", "absent"), ("2026-09-27", "absent", "present")]:
+            session = AttendanceSession.objects.create(classroom=self.classroom, date=day)
+            for student, status in [(self.anna, anna_status), (self.ben, ben_status), (archived, "absent")]:
+                AttendanceRecord.objects.create(session=session, student=student, status=status)
+        session = AttendanceSession.objects.create(classroom=other, date="2026-09-27")
+        AttendanceRecord.objects.create(session=session, student=cara, status="present")
+        filters = {"start": "2026-09-01", "end": "2026-09-30"}
+        page = self.client.get(reverse("reports"), filters)
+        data = page.context
+        self.assertEqual((data["sessions"], data["student_count"], data["present"], data["absent"], data["percentage"]), (4, 4, 3, 7, 30.0))
+        self.assertEqual([(row["student"], row["streak"]) for row in data["follow_up"]], [(self.anna, 2)])
+        self.assertEqual([(row["present"], row["absent"]) for row in data["weekly_summaries"]], [(1, 2), (0, 3), (2, 2)])
+        self.assertEqual([(row["sessions"], row["students"]) for row in data["class_summaries"]], [(3, 3), (1, 1)])
+        newcomer = next(row for row in data["student_summaries"] if row["student"] == cara)
+        self.assertEqual((newcomer["total"], newcomer["percentage"]), (1, 100.0))
+        self.assertContains(page, '<details class="panel">')
+        filtered = self.client.get(reverse("reports"), filters | {"classroom": other.pk})
+        self.assertEqual((filtered.context["sessions"], filtered.context["student_count"]), (1, 1))
+        short = self.client.get(reverse("reports"), filters | {"start": "2026-09-27", "student": self.anna.pk})
+        self.assertEqual(short.context["follow_up"], [])
+        self.assertIsNone(short.context["student_summaries"][0]["last_present"])
+        self.assertContains(short, "期間內未曾出席")
+        self.client.cookies["django_language"] = "en"
+        english = self.client.get(reverse("reports"), filters)
+        for label in ["Weekly trend", "Class overview", "Student attendance overview", "Absent for 2 consecutive sessions", "View individual attendance records"]:
+            self.assertContains(english, label)
+        self.assertNotContains(english, "關懷提醒")
