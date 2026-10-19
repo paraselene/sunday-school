@@ -222,9 +222,9 @@ def report_data(request):
     records = records.order_by("session__date", "session__classroom__name", "student__name")
     records = list(records)
     classes, weeks, students = {}, {}, {}
-    session_ids = set()
+    session_details = {}
     for record in records:
-        session_ids.add(record.session_id)
+        session_details[record.session_id] = record.session
         classroom = classes.setdefault(record.session.classroom_id, {
             "name": record.session.classroom.name, "present": 0, "absent": 0, "sessions": set(), "students": set(),
         })
@@ -255,7 +255,8 @@ def report_data(request):
     return {
         "records": records, "start": start, "end": end,
         "classroom_id": classroom_id, "student_id": student_id,
-        "present": present, "absent": absent, "sessions": len(session_ids),
+        "present": present, "absent": absent, "sessions": len(session_details),
+        "session_details": list(session_details.values()),
         "percentage": round(present * 100 / len(records), 1) if records else 0,
         "student_count": len(students),
         "class_summaries": sorted(classes.values(), key=lambda row: row["name"]),
@@ -284,6 +285,7 @@ def report_pdf(request):
     styles = getSampleStyleSheet()
     for style in (styles["Title"], styles["Normal"], styles["Heading3"]):
         style.fontName = "Chinese"
+    styles["Heading3"].keepWithNext = True
     story = [Paragraph(_("主日學點名報表"), styles["Title"]), Spacer(1, 4 * mm)]
     filters = _("日期：%(start)s 至 %(end)s") % {"start": date_format(data["start"], "DATE_FORMAT"), "end": date_format(data["end"], "DATE_FORMAT")}
     if data["classroom_id"]:
@@ -327,6 +329,9 @@ def report_pdf(request):
         summary_table(_("班級概況"), [_("班級"), _("學生人數"), _("已記錄堂數"), _("出席人次"), _("出席率")], [
             [row["name"], row["students"], row["sessions"], row["present"], f'{row["percentage"]:.1f}%'] for row in data["class_summaries"]
         ], [60, 30, 30, 30, 30])
+        summary_table(_("課堂老師"), [_("日期"), _("班級"), _("老師姓名")], [
+            [session.date.isoformat(), session.classroom.name, session.teacher_name or "-"] for session in data["session_details"]
+        ], [40, 60, 80])
         summary_table(_("每週趨勢"), [_("日期"), _("出席人次"), _("缺席人次"), _("出席率")], [
             [row["date"].isoformat(), row["present"], row["absent"], f'{row["percentage"]:.1f}%'] for row in data["weekly_summaries"]
         ], [60, 40, 40, 40])

@@ -271,3 +271,32 @@ class AttendanceTests(TestCase):
         for label in ["Weekly trend", "Class overview", "Student attendance overview", "Absent for 2 consecutive sessions", "View individual attendance records"]:
             self.assertContains(english, label)
         self.assertNotContains(english, "關懷提醒")
+
+    def test_report_teachers_are_per_session_and_follow_filters(self):
+        self.login()
+        other = Classroom.objects.create(name="Seniors")
+        cara = Student.objects.create(name="Cara", classroom=other)
+        session = AttendanceSession.objects.create(classroom=self.classroom, date="2026-09-13", teacher_name="陳老師 <Alex> & Co")
+        other_session = AttendanceSession.objects.create(classroom=other, date="2026-09-13", teacher_name="李老師")
+        legacy = AttendanceSession.objects.create(classroom=self.classroom, date="2026-09-20")
+        outside = AttendanceSession.objects.create(classroom=self.classroom, date="2026-10-04", teacher_name="Outside teacher")
+        for saved_session, student in [(session, self.anna), (session, self.ben), (other_session, cara), (legacy, self.anna), (outside, self.anna)]:
+            AttendanceRecord.objects.create(session=saved_session, student=student, status="present")
+        filters = {"start": "2026-09-01", "end": "2026-09-30"}
+        page = self.client.get(reverse("reports"), filters)
+        self.assertEqual(page.context["session_details"], [session, other_session, legacy])
+        self.assertEqual(page.context["sessions"], 3)
+        self.assertContains(page, "課堂老師")
+        self.assertContains(page, "老師姓名")
+        self.assertContains(page, "陳老師 &lt;Alex&gt; &amp; Co", count=1)
+        self.assertContains(page, "李老師", count=1)
+        self.assertContains(page, "<td>-</td>", count=1, html=True)
+        self.assertNotContains(page, "Outside teacher")
+        for changes, expected in [({"classroom": self.classroom.pk}, [session, legacy]), ({"student": cara.pk}, [other_session]), ({"start": "2026-09-20"}, [legacy]), ({"end": "2026-09-12"}, [])]:
+            filtered = self.client.get(reverse("reports"), filters | changes)
+            self.assertEqual(filtered.context["session_details"], expected)
+        self.client.cookies["django_language"] = "en"
+        english = self.client.get(reverse("reports"), filters)
+        self.assertContains(english, "Class teachers")
+        self.assertContains(english, "Teacher name")
+        self.assertNotContains(english, "課堂老師")

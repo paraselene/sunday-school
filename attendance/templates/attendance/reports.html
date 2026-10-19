@@ -27,6 +27,10 @@
   <div class="table-wrap"><table><thead><tr><th>{% translate "班級" %}</th><th>{% translate "學生人數" %}</th><th>{% translate "已記錄堂數" %}</th><th>{% translate "出席人次" %}</th><th>{% translate "出席率" %}</th></tr></thead><tbody>{% for row in class_summaries %}<tr><td>{{ row.name }}</td><td>{{ row.students }}</td><td>{{ row.sessions }}</td><td>{{ row.present }}</td><td>{{ row.percentage|floatformat:1 }}%</td></tr>{% endfor %}</tbody></table></div>
 </section>
 <section class="panel">
+  <h2>{% translate "課堂老師" %}</h2>
+  <div class="table-wrap"><table><thead><tr><th>{% translate "日期" %}</th><th>{% translate "班級" %}</th><th>{% translate "老師姓名" %}</th></tr></thead><tbody>{% for session in session_details %}<tr><td>{{ session.date }}</td><td>{{ session.classroom.name }}</td><td>{{ session.teacher_name|default:"-" }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="panel">
   <h2>{% translate "學生出席概況" %}</h2>
   <p class="report-note">{% translate "按出席率由低至高排列；已封存學生保留歷史，但不列入關懷提醒。" %}</p>
   <div class="table-wrap"><table><thead><tr><th>{% translate "學生" %}</th><th>{% translate "班級" %}</th><th>{% translate "出席／已記錄" %}</th><th>{% translate "出席率" %}</th><th>{% translate "最後出席" %}</th></tr></thead><tbody>{% for row in student_summaries %}<tr><td>{{ row.student.name }}{% if not row.student.active %} <small>({% translate "已封存" %})</small>{% endif %}</td><td>{{ row.classroom }}</td><td>{{ row.present }} / {{ row.total }}</td><td>{{ row.percentage|floatformat:1 }}%</td><td>{{ row.last_present|date|default:_("期間內未曾出席") }}</td></tr>{% endfor %}</tbody></table></div>

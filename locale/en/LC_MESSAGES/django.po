@@ -98,6 +98,9 @@ msgstr "Save attendance record"
 msgid "老師姓名"
 msgstr "Teacher name"
 
+msgid "課堂老師"
+msgstr "Class teachers"
+
 msgid "老師姓名不可超過 100 個字元。"
 msgstr "Teacher name must be 100 characters or fewer."
 
