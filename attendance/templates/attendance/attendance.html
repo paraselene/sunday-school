@@ -12,6 +12,8 @@
   <h2>{{ classroom.name }} · {{ date }}</h2>
   <button type="button" class="secondary" aria-controls="add-student" onclick="document.getElementById('add-student').showModal()">{% translate "新增學生" %}</button>
   {% for row in rows %}<fieldset><legend>{{ row.student.name }}{% if not row.student.active %} <small>（{% translate "已封存" %}）</small>{% endif %}</legend><div class="status-options"><label class="present"><input type="radio" name="status_{{ row.student.pk }}" value="present"{% if row.status == 'present' %} checked{% endif %} required> {% translate "出席" %}</label><label class="absent"><input type="radio" name="status_{{ row.student.pk }}" value="absent"{% if row.status == 'absent' %} checked{% endif %}> {% translate "缺席" %}</label></div></fieldset>{% empty %}<p>{% translate "沒有現有學生，請先新增學生再進行點名。" %}</p>{% endfor %}
+  <label for="teacher-name">{% translate "老師姓名" %}</label>
+  <input id="teacher-name" name="teacher_name" maxlength="100" autocomplete="name" value="{{ teacher_name }}">
   {% if rows %}<button type="submit">{% translate "儲存點名紀錄" %}</button>{% endif %}
 </form>
 <dialog id="add-student" class="edit-dialog" aria-labelledby="add-student-title">

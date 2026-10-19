@@ -166,6 +166,9 @@ def attendance(request):
     date = requested_date if not invalid_date else next_sunday()
     date = date or next_sunday()
     session = AttendanceSession.objects.filter(classroom=classroom, date=date).first() if classroom else None
+    teacher_name = session.teacher_name if session else ""
+    if request.method == "POST":
+        teacher_name = request.POST.get("teacher_name", "").strip()
     roster = attendance_roster(classroom, session) if classroom else []
     saved = {record.student_id: record.status for record in session.records.all()} if session else {}
 
@@ -180,9 +183,11 @@ def attendance(request):
             messages.error(request, _("請先新增至少一名現有學生。"))
         elif any(status not in dict(AttendanceRecord.STATUS_CHOICES) for status in statuses.values()):
             messages.error(request, _("儲存前請為每名學生標示出席或缺席。"))
+        elif len(teacher_name) > 100:
+            messages.error(request, _("老師姓名不可超過 100 個字元。"))
         else:
             with transaction.atomic():
-                session, _created = AttendanceSession.objects.get_or_create(classroom=classroom, date=date)
+                session, _created = AttendanceSession.objects.update_or_create(classroom=classroom, date=date, defaults={"teacher_name": teacher_name})
                 for student_id, status in statuses.items():
                     AttendanceRecord.objects.update_or_create(session=session, student_id=student_id, defaults={"status": status})
             messages.success(request, _("點名紀錄已儲存。"))
@@ -196,6 +201,7 @@ def attendance(request):
         rows.append({"student": student, "status": status})
     return render(request, "attendance/attendance.html", {
         "classrooms": Classroom.objects.all(), "classroom": classroom, "date": date, "rows": rows,
+        "teacher_name": teacher_name,
         "add_student_errors": adding_student and not student_added,
     })
 

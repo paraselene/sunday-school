@@ -95,6 +95,12 @@ msgstr "There are no current students. Add a student before taking attendance."
 msgid "儲存點名紀錄"
 msgstr "Save attendance record"
 
+msgid "老師姓名"
+msgstr "Teacher name"
+
+msgid "老師姓名不可超過 100 個字元。"
+msgstr "Teacher name must be 100 characters or fewer."
+
 msgid "所有學生"
 msgstr "All students"
 

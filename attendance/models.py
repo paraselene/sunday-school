@@ -30,6 +30,7 @@ class Student(models.Model):
 class AttendanceSession(models.Model):
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, related_name="sessions")
     date = models.DateField()
+    teacher_name = models.CharField(max_length=100, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

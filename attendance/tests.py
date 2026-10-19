@@ -99,6 +99,7 @@ class AttendanceTests(TestCase):
             page = self.client.get(url)
             self.assertContains(page, text)
             self.assertContains(page, "繁體中文")
+        self.assertContains(self.client.get(pages[3][0]), "Teacher name")
         self.assertContains(self.client.get(pages[-1][0]), "Present")
         with translation.override("en"):
             self.assertEqual(AttendanceRecord.objects.get().get_status_display(), "Present")
@@ -140,17 +141,49 @@ class AttendanceTests(TestCase):
     def test_save_requires_complete_roster_and_reopens_for_correction(self):
         self.login()
         url = reverse("attendance")
-        incomplete = self.client.post(url, {"classroom": self.classroom.pk, "date": "2026-09-20", f"status_{self.anna.pk}": "present"})
+        incomplete = self.client.post(url, {"classroom": self.classroom.pk, "date": "2026-09-20", "teacher_name": "陳老師", f"status_{self.anna.pk}": "present"})
         self.assertContains(incomplete, "儲存前請為每名學生標示出席或缺席")
+        self.assertContains(incomplete, 'value="陳老師"')
         self.assertFalse(AttendanceSession.objects.exists())
-        complete = {"classroom": self.classroom.pk, "date": "2026-09-20", f"status_{self.anna.pk}": "present", f"status_{self.ben.pk}": "absent"}
+        complete = {"classroom": self.classroom.pk, "date": "2026-09-20", "teacher_name": " 陳老師 ", f"status_{self.anna.pk}": "present", f"status_{self.ben.pk}": "absent"}
         self.client.post(url, complete)
         session = AttendanceSession.objects.get()
         self.assertEqual(session.records.count(), 2)
+        self.assertEqual(session.teacher_name, "陳老師")
+        reopened = self.client.get(url, {"classroom": self.classroom.pk, "date": "2026-09-20"})
+        self.assertContains(reopened, '<input id="teacher-name" name="teacher_name" maxlength="100" autocomplete="name" value="陳老師">', html=True)
+        self.assertLess(reopened.content.index(b'name="status_'), reopened.content.index(b'name="teacher_name"'))
+        self.assertLess(reopened.content.index(b'name="teacher_name"'), reopened.content.index("儲存點名紀錄".encode()))
         complete[f"status_{self.ben.pk}"] = "present"
+        complete["teacher_name"] = "李老師"
         self.client.post(url, complete)
+        session.refresh_from_db()
         self.assertEqual(AttendanceSession.objects.count(), 1)
+        self.assertEqual(session.teacher_name, "李老師")
         self.assertEqual(session.records.get(student=self.ben).status, "present")
+
+    def test_teacher_name_length_validation_and_optional_blank(self):
+        self.login()
+        url = reverse("attendance")
+        data = {"classroom": self.classroom.pk, "date": "2026-09-20", "teacher_name": "陳" * 101, f"status_{self.anna.pk}": "present", f"status_{self.ben.pk}": "absent"}
+        page = self.client.post(url, data)
+        self.assertContains(page, "老師姓名不可超過 100 個字元。")
+        self.assertContains(page, f'name="status_{self.anna.pk}" value="present" checked')
+        self.assertContains(page, f'name="status_{self.ben.pk}" value="absent" checked')
+        self.assertContains(page, f'value="{data["teacher_name"]}"')
+        self.assertFalse(AttendanceSession.objects.exists())
+        self.assertEqual(self.client.post(url, data | {"teacher_name": "陳" * 100}).status_code, 302)
+        session = AttendanceSession.objects.get()
+        self.assertEqual(session.teacher_name, "陳" * 100)
+        self.client.cookies["django_language"] = "en"
+        page = self.client.post(url, data | {f"status_{self.anna.pk}": "absent"})
+        self.assertContains(page, "Teacher name must be 100 characters or fewer.")
+        session.refresh_from_db()
+        self.assertEqual(session.teacher_name, "陳" * 100)
+        self.assertEqual(session.records.get(student=self.anna).status, "present")
+        self.assertEqual(self.client.post(url, data | {"teacher_name": " "}).status_code, 302)
+        session.refresh_from_db()
+        self.assertEqual(session.teacher_name, "")
 
     def test_attendance_rejects_non_sunday(self):
         self.login()
@@ -161,13 +194,14 @@ class AttendanceTests(TestCase):
     def test_add_student_during_attendance_preserves_marks_and_validates(self):
         self.login()
         url = reverse("attendance")
-        data = {"classroom": self.classroom.pk, "date": "2026-09-20", "action": "add_student", "name": " Cara ", "emergency_contact": "Mother", "phone": "0212345678", f"status_{self.anna.pk}": "present", f"status_{self.ben.pk}": "absent"}
+        data = {"classroom": self.classroom.pk, "date": "2026-09-20", "teacher_name": "陳老師", "action": "add_student", "name": " Cara ", "emergency_contact": "Mother", "phone": "0212345678", f"status_{self.anna.pk}": "present", f"status_{self.ben.pk}": "absent"}
         page = self.client.post(url, data)
         cara = Student.objects.get(name="Cara", classroom=self.classroom)
         self.assertEqual((cara.emergency_contact, cara.phone), ("Mother", "0212345678"))
         self.assertContains(page, f'name="status_{cara.pk}"')
         self.assertContains(page, f'name="status_{self.anna.pk}" value="present" checked')
         self.assertContains(page, f'name="status_{self.ben.pk}" value="absent" checked')
+        self.assertContains(page, 'value="陳老師"')
         self.assertEqual(page.context["date"], date(2026, 9, 20))
         self.assertFalse(AttendanceSession.objects.exists())
         for changes, error in [({"name": "cArA"}, "這個班級已有同名學生。"), ({"name": " "}, "請輸入學生姓名。"), ({"phone": "1" * 31}, "學生資料太長。"), ({"date": "2026-09-21", "name": "Dana"}, "請選擇星期日。")]:
@@ -175,11 +209,13 @@ class AttendanceTests(TestCase):
             self.assertContains(page, error)
             self.assertContains(page, f'name="status_{self.anna.pk}" value="present" checked')
             self.assertContains(page, f'name="status_{self.ben.pk}" value="absent" checked')
+            self.assertContains(page, 'value="陳老師"')
             self.assertEqual(Student.objects.count(), 3)
         data.pop("action")
         data.update({f"status_{self.ben.pk}": "absent", f"status_{cara.pk}": "present"})
         self.assertEqual(self.client.post(url, data).status_code, 302)
         self.assertEqual(AttendanceRecord.objects.count(), 3)
+        self.assertEqual(AttendanceSession.objects.get().teacher_name, "陳老師")
         empty_class = Classroom.objects.create(name="New class")
         self.assertContains(self.client.get(url, {"classroom": empty_class.pk}), 'aria-controls="add-student"')
         self.client.post(url, {"classroom": empty_class.pk, "date": "2026-09-20", "action": "add_student", "name": "First student"})

@@ -32,6 +32,8 @@ python manage.py runserver
 
 使用 `python manage.py check`、`python manage.py makemigrations --check` 及 `python manage.py test` 執行檢查。
 
+點名表最下方可填寫老師姓名（選填，最多 100 個字元），隨該班當日的點名紀錄儲存；重新載入同一班及日期即可查看或修改。舊紀錄的老師姓名預設留空。
+
 HTTPS 終止、網域／DNS 設定、定期 volume 備份及多執行個體部署屬於本應用程式以外的基礎設施工作。
 
 PDF 使用本機 `fonts/NotoSansTC[wght].ttf` 的 Noto Sans TC（思源黑體繁中）。字型不會提交至 Git，也不會放進映像；Docker Compose 會將 `./fonts` 唯讀掛載到容器的 `/app/fonts`。
