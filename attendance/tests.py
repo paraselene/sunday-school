@@ -2,6 +2,7 @@ from datetime import date
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
@@ -10,7 +11,7 @@ from django.urls import reverse
 from django.utils import translation
 
 from .models import AttendanceRecord, AttendanceSession, Classroom, Student
-from .views import next_sunday, weekly_database_backup
+from .views import available_sundays, next_sunday, weekly_database_backup
 
 
 class AttendanceTests(TestCase):
@@ -190,6 +191,34 @@ class AttendanceTests(TestCase):
         response = self.client.post(reverse("attendance"), {"classroom": self.classroom.pk, "date": "2026-09-21"})
         self.assertContains(response, "請選擇星期日。")
         self.assertFalse(AttendanceSession.objects.exists())
+        response = self.client.get(reverse("attendance"), {"classroom": self.classroom.pk, "date": "2026-09-21"})
+        self.assertContains(response, "請選擇星期日。")
+        self.assertEqual(response.context["date"].weekday(), 6)
+
+    def test_sunday_dropdown_range_extends_through_next_month(self):
+        for today, last in [(date(2026, 10, 19), date(2026, 11, 29)), (date(2026, 12, 31), date(2027, 1, 31)), (date(2032, 1, 31), date(2032, 2, 29))]:
+            choices = available_sundays(today)
+            self.assertEqual(choices[0], date(2026, 9, 6))
+            self.assertEqual(choices[-1], last)
+            self.assertTrue(all(day.weekday() == 6 for day in choices))
+            self.assertTrue(all((later - earlier).days == 7 for earlier, later in zip(choices, choices[1:])))
+
+    def test_attendance_dropdown_defaults_to_today_or_next_sunday(self):
+        self.login()
+        for today, selected in [(date(2026, 10, 18), "2026-10-18"), (date(2026, 10, 19), "2026-10-25"), (date(2026, 10, 31), "2026-11-01")]:
+            with self.subTest(today=today), patch("attendance.views.timezone.localdate", return_value=today):
+                page = self.client.get(reverse("attendance"), {"classroom": self.classroom.pk})
+                self.assertEqual(page.context["date"], date.fromisoformat(selected))
+                self.assertContains(page, f'<option value="{selected}" selected>')
+                self.assertNotContains(page, 'type="date"')
+                self.assertNotContains(page, 'type="month"')
+        for selected in ["2026-08-30", "9999-12-26"]:
+            page = self.client.post(reverse("attendance"), {"classroom": self.classroom.pk, "date": selected, f"status_{self.anna.pk}": "present", f"status_{self.ben.pk}": "absent"})
+            self.assertContains(page, "請選擇清單內的日期。")
+            self.assertFalse(AttendanceSession.objects.exists())
+        self.client.cookies["django_language"] = "en"
+        english = self.client.get(reverse("attendance"), {"classroom": self.classroom.pk, "date": "2026-09-20"})
+        self.assertContains(english, "2026-09-20 (Sunday)")
 
     def test_add_student_during_attendance_preserves_marks_and_validates(self):
         self.login()
@@ -300,3 +329,27 @@ class AttendanceTests(TestCase):
         self.assertContains(english, "Class teachers")
         self.assertContains(english, "Teacher name")
         self.assertNotContains(english, "課堂老師")
+
+    def test_report_dates_use_sunday_choices_and_keep_legacy_ranges(self):
+        self.login()
+        for day in ["2026-08-30", "2026-09-06", "2026-09-13", "2026-09-20", "2026-09-27", "2026-10-04"]:
+            session = AttendanceSession.objects.create(classroom=self.classroom, date=day)
+            AttendanceRecord.objects.create(session=session, student=self.anna, status="present")
+        page = self.client.get(reverse("reports"), {"start": "2026-09-01", "end": "2026-09-30"})
+        self.assertEqual(page.context["start"], date(2026, 9, 6))
+        self.assertEqual(page.context["end"], date(2026, 9, 27))
+        self.assertEqual(page.context["sessions"], 4)
+        self.assertTrue(all(day.weekday() == 6 for day in page.context["sundays"]))
+        self.assertContains(page, '<select id="start" name="start" required>')
+        self.assertContains(page, '<select id="end" name="end" required>')
+        self.assertContains(page, '<option value="2026-09-06" selected>')
+        self.assertContains(page, '<option value="2026-09-27" selected>')
+        self.assertNotContains(page, 'type="date"')
+        self.assertNotContains(page, 'type="month"')
+        attendance_page = self.client.get(reverse("attendance"))
+        self.assertEqual(page.context["sundays"], attendance_page.context["sundays"])
+        no_sunday = self.client.get(reverse("reports"), {"start": "2026-09-07", "end": "2026-09-12"})
+        self.assertEqual(no_sunday.context["sessions"], 0)
+        clamped = self.client.get(reverse("reports"), {"start": "0001-01-01", "end": "9999-12-31"})
+        self.assertEqual(clamped.context["start"], clamped.context["sundays"][0])
+        self.assertEqual(clamped.context["end"], clamped.context["sundays"][-1])

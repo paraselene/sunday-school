@@ -74,8 +74,14 @@ msgstr "Manage"
 msgid "日期（星期日）"
 msgstr "Date (Sunday)"
 
+msgid "星期日"
+msgstr "Sunday"
+
 msgid "請選擇星期日。"
 msgstr "Please choose a Sunday."
+
+msgid "請選擇清單內的日期。"
+msgstr "Please choose a date from the list."
 
 msgid "載入名單"
 msgstr "Load roster"

@@ -1,0 +1,5 @@
+{% load i18n %}
+<div>
+  <label for="{{ field_name }}">{{ label }}</label>
+  <select id="{{ field_name }}" name="{{ field_name }}" required>{% for sunday in sundays %}<option value="{{ sunday|date:'Y-m-d' }}"{% if sunday == date %} selected{% endif %}>{{ sunday|date:'Y-m-d' }} ({% translate "星期日" %})</option>{% endfor %}</select>
+</div>

@@ -1,4 +1,5 @@
-from datetime import timedelta
+from calendar import monthrange
+from datetime import date, timedelta
 from hmac import compare_digest
 from io import BytesIO
 from pathlib import Path
@@ -71,6 +72,14 @@ def login_view(request):
 def next_sunday(day=None):
     day = day or timezone.localdate()
     return day + timedelta(days=(6 - day.weekday()) % 7)
+
+
+def available_sundays(today=None):
+    today = today or timezone.localdate()
+    next_month = today.replace(day=1) + timedelta(days=32)
+    end = next_month.replace(day=monthrange(next_month.year, next_month.month)[1])
+    first = date(2026, 9, 6)
+    return [first + timedelta(weeks=week) for week in range((end - first).days // 7 + 1)]
 
 
 def selected_classroom(request):
@@ -159,10 +168,11 @@ def attendance_roster(classroom, session):
 @login_required
 def attendance(request):
     classroom = selected_classroom(request)
+    sundays = available_sundays()
     requested_date = parse_date(request.GET.get("date", "") or request.POST.get("date", ""))
-    invalid_date = requested_date and requested_date.weekday() != 6
+    invalid_date = requested_date and requested_date not in sundays
     if invalid_date:
-        messages.error(request, _("請選擇星期日。"))
+        messages.error(request, _("請選擇星期日。") if requested_date.weekday() != 6 else _("請選擇清單內的日期。"))
     date = requested_date if not invalid_date else next_sunday()
     date = date or next_sunday()
     session = AttendanceSession.objects.filter(classroom=classroom, date=date).first() if classroom else None
@@ -201,6 +211,7 @@ def attendance(request):
         rows.append({"student": student, "status": status})
     return render(request, "attendance/attendance.html", {
         "classrooms": Classroom.objects.all(), "classroom": classroom, "date": date, "rows": rows,
+        "sundays": sundays,
         "teacher_name": teacher_name,
         "add_student_errors": adding_student and not student_added,
     })
@@ -208,8 +219,12 @@ def attendance(request):
 
 def report_data(request):
     today = timezone.localdate()
+    sundays = available_sundays(today)
     start = parse_date(request.GET.get("start", "")) or today.replace(month=1, day=1)
     end = parse_date(request.GET.get("end", "")) or today
+    start = next_sunday(min(max(start, sundays[0]), sundays[-1]))
+    end = min(max(end, sundays[0]), sundays[-1])
+    end -= timedelta(days=(end.weekday() + 1) % 7)
     classroom_id = request.GET.get("classroom", "")
     student_id = request.GET.get("student", "")
     if (classroom_id and not classroom_id.isdigit()) or (student_id and not student_id.isdigit()):
@@ -254,6 +269,7 @@ def report_data(request):
     absent = len(records) - present
     return {
         "records": records, "start": start, "end": end,
+        "sundays": sundays,
         "classroom_id": classroom_id, "student_id": student_id,
         "present": present, "absent": absent, "sessions": len(session_details),
         "session_details": list(session_details.values()),
